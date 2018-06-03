@@ -18,7 +18,7 @@ library(kintr)
 
 
 # Setting working directory
-setwd("/home/k1757709/Downloads")
+setwd("~/Desktop/R Code/Thesis Project")
 
 # Reading the data in tibble 
 data <- read_csv("complications-ds-proj-18.csv")
@@ -778,10 +778,7 @@ post_ops %>% filter((S != 0 | CD != 0) &
 
 # Complication, but index == 0 (either one if not missing) = 12
 post_ops %>% filter(
-  (
-    (S == 0 & CD == 0) | (S == 0 & is.na(CD)) | (is.na(S) & CD == 0) 
-  ) 
-  & 
+     ((S == 0 & CD == 0) | (S == 0 & is.na(CD)) | (is.na(S) & CD == 0)) & 
     C != 0) %>% 
   summarize(n = n())
 
@@ -835,12 +832,7 @@ date_names <- select_if(data, is.Date) %>% names
 categorical_names <- data %>% select(categorical_names, `Clavien-Dindo`, Severity) %>% names 
 
 
-## Exporting Data
-write_csv(data, path = 'data.csv')
-write_csv(missing_values_f, path = 'missing_values_f.csv')
-write_csv(ranges_f, path = 'ranges_f.csv')
-write_csv(variable_types_f, path = 'variable_types_f.csv')
-write_csv(table_count_f, path = 'table_count_f.csv')
+
 
 
 
