@@ -1,2 +1,2 @@
-# Thesis_MSC_Project
-Data Science MSc Thesis 
+# MSc Thesis Project
+R Code related to my MSc thesis at KCL University. 
