@@ -18,7 +18,7 @@ library(kintr)
 
 
 # Setting working directory
-setwd("/home/k1757709/Downloads")
+setwd("~/Desktop/R Code/Thesis Project")
 
 # Reading the data in tibble 
 data <- read_csv("complications-ds-proj-18.csv")
