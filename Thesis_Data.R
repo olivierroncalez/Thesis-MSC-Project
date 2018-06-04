@@ -1,20 +1,13 @@
 # Data Loading ----------------------------------------------------------------------
-library(stargazer)
 library(tidyverse)
 library(clipr)
-library(pipeR)
-library(dplyr)
-library(readr)
 library(devtools)
 library(DataExplorer)
-library(tibble)
 library(data.table)
-library(DataExplorer)
 library(lubridate)
 library(outliers)
-library(stringr)
-library(tidyr)
 library(kintr)
+
 
 
 # Setting working directory
@@ -794,7 +787,7 @@ post_ops %>% filter(
 # Visualizations
 ###########################################
 ggplot(data, aes(x = Severity, y = Age)) +
-  geom_boxplot()
+     geom_boxplot()
 
 
 
@@ -819,6 +812,8 @@ plot_bar(data)
 ###########################################
 # === These are to be run after the data has been cleaned. Simply splits the data into purly numeric,
 # === categorical, or date dfs.
+
+
 
 
 ## Extracting names by type
