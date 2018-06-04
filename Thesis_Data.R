@@ -2,7 +2,6 @@
 library(tidyverse)
 library(clipr)
 library(devtools)
-install.packages("outliers")
 library(DataExplorer)
 library(data.table)
 library(lubridate)
