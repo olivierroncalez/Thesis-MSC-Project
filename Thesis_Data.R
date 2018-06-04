@@ -787,7 +787,7 @@ post_ops %>% filter(
 # Visualizations
 ###########################################
 ggplot(data, aes(x = Severity, y = Age)) +
-  geom_boxplot()
+     geom_boxplot()
 
 
 
@@ -812,6 +812,8 @@ plot_bar(data)
 ###########################################
 # === These are to be run after the data has been cleaned. Simply splits the data into purly numeric,
 # === categorical, or date dfs.
+
+
 
 
 ## Extracting names by type
