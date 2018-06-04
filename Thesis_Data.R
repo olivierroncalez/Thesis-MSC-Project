@@ -1,20 +1,14 @@
 # Data Loading ----------------------------------------------------------------------
-library(stargazer)
 library(tidyverse)
 library(clipr)
-library(pipeR)
-library(dplyr)
-library(readr)
 library(devtools)
+install.packages("outliers")
 library(DataExplorer)
-library(tibble)
 library(data.table)
-library(DataExplorer)
 library(lubridate)
 library(outliers)
-library(stringr)
-library(tidyr)
 library(kintr)
+
 
 
 # Setting working directory
