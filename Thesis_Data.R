@@ -10,6 +10,7 @@ library(kintr)
 
 
 
+
 # Setting working directory
 setwd("~/Desktop/R Code/Thesis Project")
 
@@ -781,6 +782,107 @@ post_ops %>% filter(
           C == 0) %>% 
      summarize(n = n())
 
+# Removing temporary data
+rm('post_ops')
+
+
+
+
+## Concordance anesthesia
+
+# Boolean greater than 6 hours, numeric greater than 6 = 161 instances (concordance)
+data %>% select(ANAESTHETIC__6hrs, AnaestheticTime_hours_) %>% 
+     filter(AnaestheticTime_hours_ >= 6 & ANAESTHETIC__6hrs == 1) %>% 
+     tally()
+
+
+# Boolean less than 6 hours, numeric less than 6 = 315 instances (concordance)
+data %>% select(ANAESTHETIC__6hrs, AnaestheticTime_hours_) %>% 
+     filter(AnaestheticTime_hours_ < 6 & ANAESTHETIC__6hrs == 0) %>% 
+     tally()
+
+
+# Boolean NOT greater than 6 hours, numeric greater than 6 = 14 instances (no concordance)
+data %>% select(ANAESTHETIC__6hrs, AnaestheticTime_hours_) %>% 
+     filter(AnaestheticTime_hours_ >= 6 & ANAESTHETIC__6hrs != 1) %>% 
+     tally()
+
+
+# Boolean greater than 6 hours, numeric NOT greater than 6 = 1 instance (no concordance)
+data %>% select(ANAESTHETIC__6hrs, AnaestheticTime_hours_) %>% 
+     filter(AnaestheticTime_hours_ < 6 & ANAESTHETIC__6hrs != 0) %>% 
+     tally()
+
+
+
+
+## Concordance complications & complications number 
+
+# Complications 'yes', complications number != 0 (concordance)
+data %>% select(Complications, ComplicationNumber) %>% 
+     filter(Complications == 1, ComplicationNumber != 0) %>% 
+     tally()
+
+# Complications 'no', complications number == 0 (concordance)
+data %>% select(Complications, ComplicationNumber) %>% 
+     filter(Complications == 0, ComplicationNumber == 0) %>% 
+     tally()
+
+# Complications 'yes', complications number == 0 (no concordance)
+data %>% select(Complications, ComplicationNumber) %>% 
+     filter(Complications != 0, ComplicationNumber == 0) %>% 
+     tally()
+
+# Complications 'no', complications number != 0 (no concordance)
+data %>% select(Complications, ComplicationNumber) %>% 
+     filter(Complications == 0, ComplicationNumber != 0) %>% 
+     tally()
+
+
+
+
+## Concordance died & days_30
+
+# Boolean did not die (concordance)
+data %>% select(Died, Days_30) %>% 
+     filter(Died == 0, Days_30 == 0) %>% 
+     tally()
+
+# Boolean died (concordance)
+data %>% select(Died, Days_30) %>% 
+     filter(Died == 1, Days_30 == 1) %>% 
+     tally()
+
+# Boolean did not die, boolean died days_30 (no concordance)
+data %>% select(Died, Days_30) %>% 
+     filter(Died == 0, Days_30 == 1) %>% 
+     tally()
+
+# Boolean died, boolean did not die days_30 
+# === This does NOT imply lack of concordance. Patient may die before 30 days. 
+data %>% select(Died, Days_30) %>% 
+     filter(Died == 1, Days_30 == 0) %>% 
+     tally()
+
+
+
+
+## Concordance hospital stay
+
+# Days numeric greater or equal to 35, boolean greater than 35 (concordance)
+data %>% select(Daysinpatient, Daysinpatient_35) %>% 
+     filter(Daysinpatient >= 35, Daysinpatient_35 == 1) %>% 
+     tally()
+
+# Days numeric less than 35, boolean less than 35 (concordance)
+data %>% select(Daysinpatient, Daysinpatient_35) %>% 
+     filter(Daysinpatient < 35, Daysinpatient_35 == 0) %>% 
+     tally()
+
+
+
+data %>% select(Daysinpatient, Daysinpatient_35) %>% 
+     filter(Daysinpatient == 35)
 
 
 
@@ -804,8 +906,6 @@ ggplot(data, aes(x = Severity, y = Age)) +
 plot_str(data)
 plot_missing(data)
 plot_bar(data)
-
-
 
 
 
