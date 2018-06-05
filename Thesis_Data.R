@@ -744,8 +744,8 @@ post_ops <- data %>%
 
 
 
-# Number of rows where a data exists for (either CD or Severity) AND Complications = 643
-post_ops %>% filter((!is.na(S) | is.na(CD)) &
+# Number of rows where a data exists for (either CD or Severity) AND Complications = 635
+post_ops %>% filter((!is.na(S) | !is.na(CD)) &
                       !is.na(C)) %>% 
   summarize(n = n())
 
@@ -764,7 +764,7 @@ post_ops %>% filter((is.na(S) & is.na(CD)) &
 
 
 # No complication, but index diff than 0 (either one)
-post_ops %>% filter((S != 0 | CD != 0) & 
+post_ops %>% filter((S != 0 | CD != 0) & # != 0 implicitly removes NAs. 
                       C == 0) %>% 
   summarize(n = n())
 
@@ -775,8 +775,11 @@ post_ops %>% filter(
     C != 0) %>% 
   summarize(n = n())
 
-
-
+# No complication, but index != - (either one if not missing) = 1
+post_ops %>% filter(
+     ((S != 0 & CD != 0) | (S != 0 & is.na(CD)) | (is.na(S) & CD != 0)) & 
+          C == 0) %>% 
+     summarize(n = n())
 
 
 
@@ -794,7 +797,7 @@ ggplot(data, aes(x = Severity, y = Age)) +
 
 
 ###########################################
-# EDA using DataExplorer
+# EDA using DataExplorer & outliers package
 ###########################################
 
 # === This is experimental 
@@ -825,7 +828,8 @@ numeric_names <- data %>% select(-categorical_names, -id, Group) %>% # All numer
 date_names <- select_if(data, is.Date) %>% names
 # Categorical
 categorical_names <- data %>% select(categorical_names, `Clavien-Dindo`, Severity) %>% names 
-
+# Factor names 
+data %>% sapply(function(x) is.factor(x)) %>% .[. %in% TRUE] %>% names
 
 
 
