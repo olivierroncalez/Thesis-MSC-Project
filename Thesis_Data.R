@@ -788,6 +788,7 @@ rm('post_ops')
 
 
 
+
 ## Concordance anesthesia
 
 # Boolean greater than 6 hours, numeric greater than 6 = 161 instances (concordance)
@@ -813,6 +814,13 @@ data %>% select(ANAESTHETIC__6hrs, AnaestheticTime_hours_) %>%
      filter(AnaestheticTime_hours_ < 6 & ANAESTHETIC__6hrs != 0) %>% 
      tally()
 
+# Group_by exploration of concordance
+data %>% select(ANAESTHETIC__6hrs, AnaestheticTime_hours_) %>% 
+     group_by(ANAESTHETIC__6hrs != 0, AnaestheticTime_hours_ >= 6) %>% 
+     tally %>% 
+     na.omit # Remove any rows with missing values
+
+
 
 
 
@@ -837,6 +845,12 @@ data %>% select(Complications, ComplicationNumber) %>%
 data %>% select(Complications, ComplicationNumber) %>% 
      filter(Complications == 0, ComplicationNumber != 0) %>% 
      tally()
+
+# Group by exploration of concordance
+data %>% select(Complications, ComplicationNumber) %>% 
+     group_by(Complications, ComplicationNumber == 0) %>%  
+     tally %>% 
+     na.omit
 
 
 
@@ -864,6 +878,12 @@ data %>% select(Died, Days_30) %>%
      filter(Died == 1, Days_30 == 0) %>% 
      tally()
 
+# Group_by exploration of concordance
+data %>% select(Died, Days_30) %>% 
+     group_by(Died, Days_30) %>% 
+     tally %>% 
+     na.omit
+
 
 
 
@@ -890,8 +910,11 @@ data %>% select(Daysinpatient, Daysinpatient_35) %>%
      filter(Daysinpatient >= 35, Daysinpatient_35 == 0) %>% 
      tally()
 
-
-
+# Group_by exploration of concordance
+data %>% select(Daysinpatient, Daysinpatient_35) %>% 
+     group_by(Daysinpatient >= 35, Daysinpatient_35 == 0) %>% 
+     tally %>% 
+     na.omit
 
 
 
@@ -902,6 +925,10 @@ data %>% select(Daysinpatient, Daysinpatient_35) %>%
 ###########################################
 ggplot(data, aes(x = Severity, y = Age)) +
      geom_boxplot()
+
+
+
+
 
 
 
@@ -939,6 +966,8 @@ date_names <- select_if(data, is.Date) %>% names
 categorical_names <- data %>% select(categorical_names, `Clavien-Dindo`, Severity) %>% names 
 # Factor names 
 data %>% sapply(function(x) is.factor(x)) %>% .[. %in% TRUE] %>% names
+data %>% sapply(function(x) is.numeric(x)) %>% unname
+
 
 
 
