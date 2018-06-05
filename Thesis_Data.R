@@ -879,6 +879,7 @@ data %>% select(Daysinpatient, Daysinpatient_35) %>%
      filter(Daysinpatient < 35, Daysinpatient_35 == 0) %>% 
      tally()
 
+<<<<<<< HEAD
 # Days numeric less than 35, boolean greater than 35 (no concordance)
 data %>% select(Daysinpatient, Daysinpatient_35) %>% 
      filter(Daysinpatient < 35, Daysinpatient_35 != 0) %>% 
@@ -889,6 +890,12 @@ data %>% select(Daysinpatient, Daysinpatient_35) %>%
      filter(Daysinpatient >= 35, Daysinpatient_35 == 0) %>% 
      tally()
 
+=======
+
+
+data %>% select(Daysinpatient, Daysinpatient_35) %>% 
+     filter(Daysinpatient == 35)
+>>>>>>> 013bbf71c8c41b985ecbf8257128d1eefcb5f5d2
 
 
 
