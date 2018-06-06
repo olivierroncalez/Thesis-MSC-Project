@@ -529,11 +529,35 @@ data$Daysinpatient <- data$Daysinpatient %>%
 
 
 
+
+
+###########################################
+# Finalizing variable selection - Data Cleaning
+###########################################
+
+# === Based on discussions with my supervisor, the following variables are removed.
+# === Reference 06/06/18 discusssion and variable list for more detail.
+
+# Removing remaining variables
+data <- data %>% select(-c(id, Dateofop, ACE_27, ASA, AnaestheticTime_hours_, Fluid_2, NonbloodinfusedL,
+                           Complications, ComplicationNumber, Severity, DischargeDate, Died, Days_30, DateofDeath,
+                           Daysinpatient, Daysinpatient_35, `Clavien-Dindo`, `CD>3`, Wound, Cardiac, Pulmonary,
+                           Flap_failure))
+
+
+# Removing variables with more than 50% missing data
+data <- data[-which(rowMeans(is.na(data)) > .5),] 
+
+
+
+
+
 ###########################################
 # Factor conversion
 ###########################################
 
 # Data converted to factors here... ### NOT DONE
+
 
 
 
@@ -559,12 +583,13 @@ rm('ranges', 'table_count')
 
 # Glimpsing at the data
 glimpse(data)
+head(data)
 
 # Summary
 summary(data)
 
+
 ## Group by analyses
-# Number of people in each hospital
 data %>% group_by(Group) %>% summarise(n = n())
 
 
@@ -591,7 +616,7 @@ sum(sapply(data, is.character)) # Number of character types
 names(data[,sapply(data, is.character)]) # Names of string columns 
 
 # Numeric
-sum(sapply(data, is.numeric)) # Nuuni_condmber of integer columns
+sum(sapply(data, is.numeric)) # Number of integer columns
 names(data[,sapply(data, is.numeric)]) # Names of integer columns
 
 
@@ -618,6 +643,15 @@ missing_values_f <- apply(data, 2, function(x) sum(is.na(x))) %>%
 # Arange missing values by descending order of values
 arrange(missing_values_f, desc(Missing_Count))
 
+
+# Visualizing missing values
+ggplot(data = missing_values_f, aes(x = reorder(Name, -Missing_Count), y = Missing_Count)) +
+     geom_bar(stat = 'identity', fill = 'steelblue') +
+     theme_minimal() +
+     theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+     labs(title = 'Variabel Missing Values in Decreasing Order') +
+     scale_x_discrete(name = 'Variable') +
+     scale_y_continuous(name = 'Frequency of Missing Values', breaks = seq(10, 250, 10))
 
 
 
@@ -687,15 +721,10 @@ table_count_f <- bind_rows(table_count_f) # Bind all the list rows together into
 
 # === Re-ordering the column names and inserting variable names as additional column.
 table_count_f <- bind_cols(table_count_f, as.data.frame(categorical_names))
-table_count_f <- table_count_f[, c('categorical_names', 0:6)] %>% 
+table_count_f <- table_count_f[, c('categorical_names', 0:5)] %>% 
   rename(Variable = categorical_names)
 
 
-
-
-## `Clavien-Dindo` & Severity
-table(data$`Clavien-Dindo`)
-table(data$`Severity`)
 
 
 
@@ -920,6 +949,12 @@ data %>% select(Daysinpatient, Daysinpatient_35) %>%
 
 
 
+
+
+
+
+
+
 ###########################################
 # Visualizations
 ###########################################
@@ -960,13 +995,12 @@ plot_bar(data)
 # Numeric
 numeric_names <- data %>% select(-categorical_names, -id, Group) %>% # All numeric variables plus group
   select_if(is.numeric) %>% names
-# Dates
-date_names <- select_if(data, is.Date) %>% names
 # Categorical
 categorical_names <- data %>% select(categorical_names, `Clavien-Dindo`, Severity) %>% names 
 # Factor names 
 data %>% sapply(function(x) is.factor(x)) %>% .[. %in% TRUE] %>% names
 data %>% sapply(function(x) is.numeric(x)) %>% unname
+
 
 
 
