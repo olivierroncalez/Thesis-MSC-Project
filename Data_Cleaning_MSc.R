@@ -766,7 +766,9 @@ data <- data[-which(rowMeans(is.na(data)) > .5),]
 # Data converted to factors here... ### NOT DONE
 
 
-
+# Factor names 
+data %>% sapply(function(x) is.factor(x)) %>% .[. %in% TRUE] %>% names
+data %>% sapply(function(x) is.numeric(x)) %>% unname
 
 
 
@@ -960,16 +962,7 @@ ranges_f <- data %>%
 ###########################################
 
 
-
-
-
-
-
-
-
-# Factor names 
-data %>% sapply(function(x) is.factor(x)) %>% .[. %in% TRUE] %>% names
-data %>% sapply(function(x) is.numeric(x)) %>% unname
+# To complete... 
 
 
 
