@@ -529,6 +529,29 @@ data$Daysinpatient <- data$Daysinpatient %>%
 
 
 
+
+
+###########################################
+# Finalizing variable selection - Data Cleaning
+###########################################
+
+# === Based on discussions with my supervisor, the following variables are removed.
+# === Reference 06/06/18 discusssion and variable list for more detail.
+
+# Removing remaining variables
+data <- data %>% select(-c(id, Group, Dateofop, ACE_27, ASA, AnaestheticTime_hours_, Fluid_2, NonbloodinfusedL,
+                           Complications, ComplicationNumber, Severity, DischargeDate, Died, Days_30, DateofDeath,
+                           Daysinpatient, Daysinpatient_35, `Clavien-Dindo`, `CD>3`, Wound, Cardiac, Pulmonary,
+                           Flap_failure))
+
+
+# Removing variables with more than 50% missing data
+data <- data[-which(rowMeans(is.na(data)) > .5),] 
+
+
+
+
+
 ###########################################
 # Factor conversion
 ###########################################
@@ -691,11 +714,6 @@ table_count_f <- table_count_f[, c('categorical_names', 0:6)] %>%
   rename(Variable = categorical_names)
 
 
-
-
-## `Clavien-Dindo` & Severity
-table(data$`Clavien-Dindo`)
-table(data$`Severity`)
 
 
 
@@ -920,6 +938,12 @@ data %>% select(Daysinpatient, Daysinpatient_35) %>%
 
 
 
+
+
+
+
+
+
 ###########################################
 # Visualizations
 ###########################################
@@ -960,13 +984,12 @@ plot_bar(data)
 # Numeric
 numeric_names <- data %>% select(-categorical_names, -id, Group) %>% # All numeric variables plus group
   select_if(is.numeric) %>% names
-# Dates
-date_names <- select_if(data, is.Date) %>% names
 # Categorical
 categorical_names <- data %>% select(categorical_names, `Clavien-Dindo`, Severity) %>% names 
 # Factor names 
 data %>% sapply(function(x) is.factor(x)) %>% .[. %in% TRUE] %>% names
 data %>% sapply(function(x) is.numeric(x)) %>% unname
+
 
 
 
