@@ -463,6 +463,211 @@ data$Group[data$Group == 6] <- 5
 
 
 ###########################################
+# More concordance checks
+###########################################
+
+
+## Concordance Severity & Clavien-Dindo scores
+
+# === Checking concordence between both scores and if one is missing but the other is present. 
+
+# === Is one missing but the other present?
+data %>% select(Severity, `Clavien-Dindo`) %>% 
+  filter(!is.na(Severity) & is.na(`Clavien-Dindo`) | is.na(Severity) & !is.na(`Clavien-Dindo`))
+
+
+# === Are the two scores present but different?
+data %>% 
+  select(Severity, `Clavien-Dindo`) %>% 
+  filter(Severity != `Clavien-Dindo`) # For 207 rows concordance does not hold. 
+
+
+
+
+## Concordance post-op complications
+
+# Complications and Clavien-Dindo + Severity
+# === Creating new dataset for easier manipulatuion
+post_ops <- data %>% 
+  select(Complications, Severity, `Clavien-Dindo`) %>% 
+  rename_all(funs(c('C', 'S', 'CD')))
+
+
+
+# Number of rows where a data exists for (either CD or Severity) AND Complications = 635
+post_ops %>% filter((!is.na(S) | !is.na(CD)) &
+                      !is.na(C)) %>% 
+  summarize(n = n())
+
+
+# Some index of complication, but no complication data = 84
+post_ops %>% filter((!is.na(S) | !is.na(CD)) & 
+                      is.na(C)) %>% 
+  summarize(n = n())
+
+
+# No index of complication, but complication marked = 9
+post_ops %>% filter((is.na(S) & is.na(CD)) & 
+                      !is.na(C)) %>% 
+  summarize(n = n())
+
+
+
+# No complication, but index diff than 0 (either one)
+post_ops %>% filter((S != 0 | CD != 0) & # != 0 implicitly removes NAs. 
+                      C == 0) %>% 
+  summarize(n = n())
+
+
+# Complication, but index == 0 (either one if not missing) = 12
+post_ops %>% filter(
+     ((S == 0 & CD == 0) | (S == 0 & is.na(CD)) | (is.na(S) & CD == 0)) & 
+    C != 0) %>% 
+  summarize(n = n())
+
+# No complication, but index != - (either one if not missing) = 1
+post_ops %>% filter(
+     ((S != 0 & CD != 0) | (S != 0 & is.na(CD)) | (is.na(S) & CD != 0)) & 
+          C == 0) %>% 
+     summarize(n = n())
+
+# Removing temporary data
+rm('post_ops')
+
+
+
+
+## Concordance anesthesia
+
+# Boolean greater than 6 hours, numeric greater than 6 = 161 instances (concordance)
+data %>% select(ANAESTHETIC__6hrs, AnaestheticTime_hours_) %>% 
+     filter(AnaestheticTime_hours_ >= 6 & ANAESTHETIC__6hrs == 1) %>% 
+     tally()
+
+
+# Boolean less than 6 hours, numeric less than 6 = 315 instances (concordance)
+data %>% select(ANAESTHETIC__6hrs, AnaestheticTime_hours_) %>% 
+     filter(AnaestheticTime_hours_ < 6 & ANAESTHETIC__6hrs == 0) %>% 
+     tally()
+
+
+# Boolean NOT greater than 6 hours, numeric greater than 6 = 14 instances (no concordance)
+data %>% select(ANAESTHETIC__6hrs, AnaestheticTime_hours_) %>% 
+     filter(AnaestheticTime_hours_ >= 6 & ANAESTHETIC__6hrs != 1) %>% 
+     tally()
+
+
+# Boolean greater than 6 hours, numeric NOT greater than 6 = 1 instance (no concordance)
+data %>% select(ANAESTHETIC__6hrs, AnaestheticTime_hours_) %>% 
+     filter(AnaestheticTime_hours_ < 6 & ANAESTHETIC__6hrs != 0) %>% 
+     tally()
+
+# Group_by exploration of concordance
+data %>% select(ANAESTHETIC__6hrs, AnaestheticTime_hours_) %>% 
+     group_by(ANAESTHETIC__6hrs != 0, AnaestheticTime_hours_ >= 6) %>% 
+     tally %>% 
+     na.omit # Remove any rows with missing values
+
+
+
+
+
+## Concordance complications & complications number 
+
+# Complications 'yes', complications number != 0 (concordance)
+data %>% select(Complications, ComplicationNumber) %>% 
+     filter(Complications == 1, ComplicationNumber != 0) %>% 
+     tally()
+
+# Complications 'no', complications number == 0 (concordance)
+data %>% select(Complications, ComplicationNumber) %>% 
+     filter(Complications == 0, ComplicationNumber == 0) %>% 
+     tally()
+
+# Complications 'yes', complications number == 0 (no concordance)
+data %>% select(Complications, ComplicationNumber) %>% 
+     filter(Complications != 0, ComplicationNumber == 0) %>% 
+     tally()
+
+# Complications 'no', complications number != 0 (no concordance)
+data %>% select(Complications, ComplicationNumber) %>% 
+     filter(Complications == 0, ComplicationNumber != 0) %>% 
+     tally()
+
+# Group by exploration of concordance
+data %>% select(Complications, ComplicationNumber) %>% 
+     group_by(Complications, ComplicationNumber == 0) %>%  
+     tally %>% 
+     na.omit
+
+
+
+
+## Concordance died & days_30
+
+# Boolean did not die (concordance)
+data %>% select(Died, Days_30) %>% 
+     filter(Died == 0, Days_30 == 0) %>% 
+     tally()
+
+# Boolean died (concordance)
+data %>% select(Died, Days_30) %>% 
+     filter(Died == 1, Days_30 == 1) %>% 
+     tally()
+
+# Boolean did not die, boolean died days_30 (no concordance)
+data %>% select(Died, Days_30) %>% 
+     filter(Died == 0, Days_30 == 1) %>% 
+     tally()
+
+# Boolean died, boolean did not die days_30 
+# === This does NOT imply lack of concordance. Patient may die before 30 days. 
+data %>% select(Died, Days_30) %>% 
+     filter(Died == 1, Days_30 == 0) %>% 
+     tally()
+
+# Group_by exploration of concordance
+data %>% select(Died, Days_30) %>% 
+     group_by(Died, Days_30) %>% 
+     tally %>% 
+     na.omit
+
+
+
+
+## Concordance hospital stay
+
+# Days numeric greater or equal to 35, boolean greater than 35 (concordance)
+data %>% select(Daysinpatient, Daysinpatient_35) %>% 
+     filter(Daysinpatient >= 35, Daysinpatient_35 == 1) %>% 
+     tally()
+
+# Days numeric less than 35, boolean less than 35 (concordance)
+data %>% select(Daysinpatient, Daysinpatient_35) %>% 
+     filter(Daysinpatient < 35, Daysinpatient_35 == 0) %>% 
+     tally()
+
+
+# Days numeric less than 35, boolean greater than 35 (no concordance)
+data %>% select(Daysinpatient, Daysinpatient_35) %>% 
+     filter(Daysinpatient < 35, Daysinpatient_35 != 0) %>% 
+     tally()
+
+# Days numeric greater or equal to 35, boolean less than 35 (no concordance)
+data %>% select(Daysinpatient, Daysinpatient_35) %>% 
+     filter(Daysinpatient >= 35, Daysinpatient_35 == 0) %>% 
+     tally()
+
+# Group_by exploration of concordance
+data %>% select(Daysinpatient, Daysinpatient_35) %>% 
+     group_by(Daysinpatient >= 35, Daysinpatient_35 == 0) %>% 
+     tally %>% 
+     na.omit
+
+
+
+
+###########################################
 # Outlier & eronneous values detection - Part II
 ###########################################
 
@@ -570,7 +775,7 @@ data <- data[-which(rowMeans(is.na(data)) > .5),]
 # === cleaned data.
 
 # Remove old env values
-rm('ranges', 'table_count')
+rm('ranges', 'table_count', 'categorical_names')
 
 
 
@@ -747,219 +952,10 @@ ranges_f <- data %>%
 
 
 
-## Concordance Severity & Clavien-Dindo scores
-
-# === Checking concordence between both scores and if one is missing but the other is present. 
-
-# === Is one missing but the other present?
-data %>% select(Severity, `Clavien-Dindo`) %>% 
-  filter(!is.na(Severity) & is.na(`Clavien-Dindo`) | is.na(Severity) & !is.na(`Clavien-Dindo`))
-
-
-# === Are the two scores present but different?
-data %>% 
-  select(Severity, `Clavien-Dindo`) %>% 
-  filter(Severity != `Clavien-Dindo`) # For 207 rows concordance does not hold. 
-
-
-
-
-## Concordance post-op complications
-
-# Complications and Clavien-Dindo + Severity
-# === Creating new dataset for easier manipulatuion
-post_ops <- data %>% 
-  select(Complications, Severity, `Clavien-Dindo`) %>% 
-  rename_all(funs(c('C', 'S', 'CD')))
-
-
-
-# Number of rows where a data exists for (either CD or Severity) AND Complications = 635
-post_ops %>% filter((!is.na(S) | !is.na(CD)) &
-                      !is.na(C)) %>% 
-  summarize(n = n())
-
-
-# Some index of complication, but no complication data = 84
-post_ops %>% filter((!is.na(S) | !is.na(CD)) & 
-                      is.na(C)) %>% 
-  summarize(n = n())
-
-
-# No index of complication, but complication marked = 9
-post_ops %>% filter((is.na(S) & is.na(CD)) & 
-                      !is.na(C)) %>% 
-  summarize(n = n())
-
-
-
-# No complication, but index diff than 0 (either one)
-post_ops %>% filter((S != 0 | CD != 0) & # != 0 implicitly removes NAs. 
-                      C == 0) %>% 
-  summarize(n = n())
-
-
-# Complication, but index == 0 (either one if not missing) = 12
-post_ops %>% filter(
-     ((S == 0 & CD == 0) | (S == 0 & is.na(CD)) | (is.na(S) & CD == 0)) & 
-    C != 0) %>% 
-  summarize(n = n())
-
-# No complication, but index != - (either one if not missing) = 1
-post_ops %>% filter(
-     ((S != 0 & CD != 0) | (S != 0 & is.na(CD)) | (is.na(S) & CD != 0)) & 
-          C == 0) %>% 
-     summarize(n = n())
-
-# Removing temporary data
-rm('post_ops')
-
-
-
-
-
-## Concordance anesthesia
-
-# Boolean greater than 6 hours, numeric greater than 6 = 161 instances (concordance)
-data %>% select(ANAESTHETIC__6hrs, AnaestheticTime_hours_) %>% 
-     filter(AnaestheticTime_hours_ >= 6 & ANAESTHETIC__6hrs == 1) %>% 
-     tally()
-
-
-# Boolean less than 6 hours, numeric less than 6 = 315 instances (concordance)
-data %>% select(ANAESTHETIC__6hrs, AnaestheticTime_hours_) %>% 
-     filter(AnaestheticTime_hours_ < 6 & ANAESTHETIC__6hrs == 0) %>% 
-     tally()
-
-
-# Boolean NOT greater than 6 hours, numeric greater than 6 = 14 instances (no concordance)
-data %>% select(ANAESTHETIC__6hrs, AnaestheticTime_hours_) %>% 
-     filter(AnaestheticTime_hours_ >= 6 & ANAESTHETIC__6hrs != 1) %>% 
-     tally()
-
-
-# Boolean greater than 6 hours, numeric NOT greater than 6 = 1 instance (no concordance)
-data %>% select(ANAESTHETIC__6hrs, AnaestheticTime_hours_) %>% 
-     filter(AnaestheticTime_hours_ < 6 & ANAESTHETIC__6hrs != 0) %>% 
-     tally()
-
-# Group_by exploration of concordance
-data %>% select(ANAESTHETIC__6hrs, AnaestheticTime_hours_) %>% 
-     group_by(ANAESTHETIC__6hrs != 0, AnaestheticTime_hours_ >= 6) %>% 
-     tally %>% 
-     na.omit # Remove any rows with missing values
-
-
-
-
-
-## Concordance complications & complications number 
-
-# Complications 'yes', complications number != 0 (concordance)
-data %>% select(Complications, ComplicationNumber) %>% 
-     filter(Complications == 1, ComplicationNumber != 0) %>% 
-     tally()
-
-# Complications 'no', complications number == 0 (concordance)
-data %>% select(Complications, ComplicationNumber) %>% 
-     filter(Complications == 0, ComplicationNumber == 0) %>% 
-     tally()
-
-# Complications 'yes', complications number == 0 (no concordance)
-data %>% select(Complications, ComplicationNumber) %>% 
-     filter(Complications != 0, ComplicationNumber == 0) %>% 
-     tally()
-
-# Complications 'no', complications number != 0 (no concordance)
-data %>% select(Complications, ComplicationNumber) %>% 
-     filter(Complications == 0, ComplicationNumber != 0) %>% 
-     tally()
-
-# Group by exploration of concordance
-data %>% select(Complications, ComplicationNumber) %>% 
-     group_by(Complications, ComplicationNumber == 0) %>%  
-     tally %>% 
-     na.omit
-
-
-
-
-## Concordance died & days_30
-
-# Boolean did not die (concordance)
-data %>% select(Died, Days_30) %>% 
-     filter(Died == 0, Days_30 == 0) %>% 
-     tally()
-
-# Boolean died (concordance)
-data %>% select(Died, Days_30) %>% 
-     filter(Died == 1, Days_30 == 1) %>% 
-     tally()
-
-# Boolean did not die, boolean died days_30 (no concordance)
-data %>% select(Died, Days_30) %>% 
-     filter(Died == 0, Days_30 == 1) %>% 
-     tally()
-
-# Boolean died, boolean did not die days_30 
-# === This does NOT imply lack of concordance. Patient may die before 30 days. 
-data %>% select(Died, Days_30) %>% 
-     filter(Died == 1, Days_30 == 0) %>% 
-     tally()
-
-# Group_by exploration of concordance
-data %>% select(Died, Days_30) %>% 
-     group_by(Died, Days_30) %>% 
-     tally %>% 
-     na.omit
-
-
-
-
-## Concordance hospital stay
-
-# Days numeric greater or equal to 35, boolean greater than 35 (concordance)
-data %>% select(Daysinpatient, Daysinpatient_35) %>% 
-     filter(Daysinpatient >= 35, Daysinpatient_35 == 1) %>% 
-     tally()
-
-# Days numeric less than 35, boolean less than 35 (concordance)
-data %>% select(Daysinpatient, Daysinpatient_35) %>% 
-     filter(Daysinpatient < 35, Daysinpatient_35 == 0) %>% 
-     tally()
-
-
-# Days numeric less than 35, boolean greater than 35 (no concordance)
-data %>% select(Daysinpatient, Daysinpatient_35) %>% 
-     filter(Daysinpatient < 35, Daysinpatient_35 != 0) %>% 
-     tally()
-
-# Days numeric greater or equal to 35, boolean less than 35 (no concordance)
-data %>% select(Daysinpatient, Daysinpatient_35) %>% 
-     filter(Daysinpatient >= 35, Daysinpatient_35 == 0) %>% 
-     tally()
-
-# Group_by exploration of concordance
-data %>% select(Daysinpatient, Daysinpatient_35) %>% 
-     group_by(Daysinpatient >= 35, Daysinpatient_35 == 0) %>% 
-     tally %>% 
-     na.omit
-
-
-
-
-
-
-
-
-
-
 
 ###########################################
 # Visualizations
 ###########################################
-ggplot(data, aes(x = Severity, y = Age)) +
-     geom_boxplot()
 
 
 
@@ -969,34 +965,6 @@ ggplot(data, aes(x = Severity, y = Age)) +
 
 
 
-###########################################
-# EDA using DataExplorer & outliers package
-###########################################
-
-# === This is experimental 
-plot_str(data)
-plot_missing(data)
-plot_bar(data)
-
-
-
-
-###########################################
-# Misc
-###########################################
-# === These are to be run after the data has been cleaned. Simply splits the data into purly numeric,
-# === categorical, or date dfs.
-
-
-
-
-## Extracting names by type
-
-# Numeric
-numeric_names <- data %>% select(-categorical_names, -id, Group) %>% # All numeric variables plus group
-  select_if(is.numeric) %>% names
-# Categorical
-categorical_names <- data %>% select(categorical_names, `Clavien-Dindo`, Severity) %>% names 
 # Factor names 
 data %>% sapply(function(x) is.factor(x)) %>% .[. %in% TRUE] %>% names
 data %>% sapply(function(x) is.numeric(x)) %>% unname
