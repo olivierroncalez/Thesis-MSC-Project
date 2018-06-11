@@ -764,9 +764,11 @@ data <- data[-which(rowMeans(is.na(data)) > .5),]
 ###########################################
 
 # Data converted to factors here... ### NOT DONE
+fac_names <- data %>%  select(-c(Age, N)) %>% names # Extract names of soon-to-be factor variables
+data %<>%mutate_at(fac_names, funs(factor(.))) # Update data by mutating to factor variables
+rm('fac_names')
 
-
-# Factor names 
+# Factor names (verifying)
 data %>% sapply(function(x) is.factor(x)) %>% .[. %in% TRUE] %>% names
 data %>% sapply(function(x) is.numeric(x)) %>% unname
 
@@ -968,6 +970,10 @@ ranges_f <- data %>%
 
 
 
+###########################################
+# Clean up
+###########################################
 
-
+# Removing extraneous environment objects
+rm(list = setdiff(ls(), 'data'))
 
