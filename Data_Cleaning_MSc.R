@@ -974,6 +974,6 @@ ranges_f <- data %>%
 # Clean up
 ###########################################
 
-# Removing extraneous environment object
+# Removing extraneous environment objects
 rm(list = setdiff(ls(), 'data'))
 
