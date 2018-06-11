@@ -757,6 +757,9 @@ data <- data %>% select(-c(id, Dateofop, ACE_27, ASA, AnaestheticTime_hours_, Fl
 data <- data[-which(rowMeans(is.na(data)) > .5),] 
 
 
+# Removing cases with no labelled outcome
+data <- filter(data, !is.na(Comp_30))
+
 
 
 
@@ -772,6 +775,10 @@ rm('fac_names')
 # Factor names (verifying)
 data %>% sapply(function(x) is.factor(x)) %>% .[. %in% TRUE] %>% names
 data %>% sapply(function(x) is.numeric(x)) %>% unname
+
+
+# Labelling class data
+data$Comp_30 <- factor(data$Comp_30, labels = c('Healthy', 'Comp'))
 
 
 
