@@ -786,6 +786,7 @@ rm('fac_names')
 
 # Labelling class data
 data$Comp_30 <- factor(data$Comp_30, labels = c('Healthy', 'Comp'))
+data_facMiss$Comp_30 <- factor(data_facMiss$Comp_30, labels = c('Healthy', 'Comp'))
 
 
 
@@ -991,11 +992,14 @@ ranges_f <- data %>%
 
 # Removing extraneous environment objects
 rm(list = setdiff(ls(), c('data', 'data_facMiss')))
-cat("\014") # Clear console
 
 
 # Data with listwise deletion of missing values
 data_noMiss <- na.omit(data) # Not desirable
+# Percent of data with at least one missing value
+sum(complete.cases(data))/nrow(data) # 57% of data have no missing values
 
+
+cat("\014") # Clear console
 
 
