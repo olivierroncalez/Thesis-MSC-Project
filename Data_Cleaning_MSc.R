@@ -914,6 +914,19 @@ setdiff(group_missing_var_names_f[[4]], group_missing_var_names_f[[5]])
 
 
 
+### Patterns of missing data
+
+library(VIM)
+aggr_plot <- aggr(data, 
+                  col = c('navyblue','red'), 
+                  numbers = TRUE, 
+                  sortVars = TRUE, 
+                  labels = names(data), 
+                  cex.axis = .7, 
+                  gap = 3, 
+                  ylab = c("Histogram of missing data","Pattern"))
+
+
 
 ###########################################
 # Table Count 
@@ -1001,5 +1014,6 @@ sum(complete.cases(data))/nrow(data) # 57% of data have no missing values
 
 
 cat("\014") # Clear console
+
 
 
