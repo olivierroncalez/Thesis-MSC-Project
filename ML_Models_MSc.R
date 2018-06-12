@@ -117,11 +117,11 @@ sbfCtrl <- sbfControl(method = "repeatedcv",
 
 
 set.seed(337)
-rfFull <- train(training_noMiss[, predVars],
-                      training_noMiss$Comp_30,
+rfFull <- train(training_dummied[, -ncol(training_dummied)],
+                training_dummied$Comp_30,
                       method = "rf",
                       metric = "ROC",
-                      tuneLength = 8,
+                      tuneLength = 4,
                       ntree = 1000,
                       trControl = trCtrl)
 
@@ -135,14 +135,14 @@ confusionMatrix(predict(rfFull, testing_noMiss), testing_noMiss$Comp_30)
 
 
 set.seed(337)
-logisticFull <- train(training_noMiss[, predVars],
-                      training_noMiss$Comp_30,
+logisticFull <- train(training_dummied[, -ncol(training_dummied)],
+                      training_dummied$Comp_30,
                       method = 'glm',
                       family = 'binomial',
                       preProcess = c('center', 'scale'),
                       trace = 0,
                       trControl = trCtrl)
-summary(Basic_log)
+summary(logisticFull)
 
 
 
@@ -167,13 +167,13 @@ svmFull <- train(training_noMiss[, predVars],
 ### NB
 
 
-nbFull <- train(training_noMiss[, predVars],
-                training_noMiss$Comp_30,
+nbFull <- train(training_dummied[, -ncol(training_dummied)],
+                training_dummied$Comp_30,
                 method = "nb",
                 metric = "ROC",
                 trControl = trCtrl)
 nbFull
-confusionMatrix(predict(nbFull, testing_noMiss), testing_noMiss$Comp_30)
+confusionMatrix(predict(nbFull, training_dummied), training_dummied$Comp_30)
 
 
 
