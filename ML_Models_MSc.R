@@ -8,11 +8,11 @@ library(doParallel) # Parallel computations
 library(mice) #for multiple imputation and examining missing data patterns.
 
 
-# Parallelizing computations
-cl <- makeCluster(7, outfile = '')
-registerDoParallel(cl) # Change to acceptable number of cores based on your feasability
-getDoParWorkers() 
-stopCluster(cl) # Stop cluster computations
+# Parallelizing computations 
+# cl <- makeCluster(7, outfile = '')
+# registerDoParallel(cl) # Change to acceptable number of cores based on your feasability
+# getDoParWorkers()
+# stopCluster(cl) # Stop cluster computations
 
 
 
