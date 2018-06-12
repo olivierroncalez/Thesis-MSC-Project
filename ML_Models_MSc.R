@@ -70,7 +70,7 @@ trCtrl <- trainControl(method = "repeatedcv",
                      repeats = 5,
                      summaryFunction = fiveStats,
                      classProbs = TRUE,
-                     index = index_facMiss,
+                     index = index_noMiss,
                      allowParallel = TRUE,
                      verboseIter = TRUE)
 
@@ -82,11 +82,11 @@ trCtrl <- trainControl(method = "repeatedcv",
 
 
 # Control object for implementing recursive feature elimination
-rfCtrl <- trainControl(method = "repeatedcv",
+rfCtrl <- rfeControl(method = "repeatedcv",
                          repeats = 5,
                          summaryFunction = fiveStats,
                          classProbs = TRUE,
-                         index = index,
+                         index = index_noMiss,
                          allowParallel = TRUE,
                          verboseIter = TRUE)
 
@@ -101,7 +101,7 @@ rfCtrl <- trainControl(method = "repeatedcv",
 sbfCtrl <- sbfControl(method = "repeatedcv",
                       repeats = 5,
                       verbose = TRUE,
-                      index = index)
+                      index = index_noMiss)
 
 
 
