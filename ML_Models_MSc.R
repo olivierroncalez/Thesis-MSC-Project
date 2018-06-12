@@ -9,10 +9,11 @@ library(mice) #for multiple imputation and examining missing data patterns.
 
 
 # Parallelizing computations 
-# cl <- makeCluster(7, outfile = '')
-# registerDoParallel(cl) # Change to acceptable number of cores based on your feasability
-# getDoParWorkers()
-# stopCluster(cl) # Stop cluster computations
+cl <- makeCluster(7, outfile = '')
+registerDoParallel(cl) # Change to acceptable number of cores based on your feasability
+getDoParWorkers()
+stopCluster(cl) # Stop cluster computations
+registerDoSEQ() # Unregister doParallel
 
 
 # Converting back to dataframe from tibble (caret is not tibble friendly)
@@ -125,7 +126,7 @@ rfFull <- train(training_dummied[, -ncol(training_dummied)],
                       ntree = 1000,
                       trControl = trCtrl)
 
-confusionMatrix(predict(rfFull, testing_noMiss), testing_noMiss$Comp_30)
+confusionMatrix(predict(rfFull, testing_dummied), testing_dummied$Comp_30)
 
 
 
@@ -137,29 +138,29 @@ confusionMatrix(predict(rfFull, testing_noMiss), testing_noMiss$Comp_30)
 set.seed(337)
 logisticFull <- train(training_dummied[, -ncol(training_dummied)],
                       training_dummied$Comp_30,
-                      method = 'glm',
+                      method = 'glmStepAIC',
                       family = 'binomial',
                       preProcess = c('center', 'scale'),
                       trace = 0,
                       trControl = trCtrl)
 summary(logisticFull)
+confusionMatrix(predict(logisticFull, testing_dummied), testing_dummied$Comp_30)
 
 
 
-
+names(data)
 
 ### SVM
 
 
 set.seed(337)
-svmFull <- train(training_noMiss[, predVars],
-                 training_noMiss$Comp_30,
+svmFull <- train(training_dummied[, -ncol(training_dummied)],
+                 training_dummied$Comp_30,
                  method = "svmRadial",
                  metric = "ROC",
                  tuneLength = 12,
                  preProc = c("center", "scale"),
                  trControl = trCtrl)
-
 
 
 
@@ -201,7 +202,7 @@ plot(knnFull)
 
 data_dummied <- data_noMiss
 data_dummied %<>% select(-Group)
-dummies <- dummyVars(~., select(data_dummied, -Comp_30))
+dummies <- dummyVars(~., select(data_dummied, -Comp_30), fullRank = TRUE)
 data_dummied <- as.data.frame(predict(dummies, newdata = data_dummied)) %>% 
      bind_cols(., data_dummied[ncol(data_dummied)])
 
