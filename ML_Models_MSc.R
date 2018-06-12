@@ -239,7 +239,6 @@ data_dummied <- as.data.frame(predict(dummies, newdata = data_dummied)) %>%
      bind_cols(., data_dummied[ncol(data_dummied)])
 
 
-
 nearZeroVar(data_dummied, saveMetrics = TRUE) %>% rownames_to_column(var = 'Variable') %>% 
      filter(nzv == TRUE)
 nzv <- nearZeroVar(data_dummied, saveMetrics = FALSE)
@@ -258,4 +257,30 @@ nearZeroVar(training_dummied, saveMetrics = TRUE) %>% rownames_to_column(var = '
 
 
 
-preProcess(x = data_dummied, pcaComp)
+
+
+# Imputation Methods ----------------------------------------------------------------
+
+data %>% sapply(function(x) class(x)) %>% unname
+
+init <- mice(data, maxit = 0)
+meth <- init$method
+predM <- init$predictorMatrix
+
+predM[, c('Group', 'Comp_30')] <- 0
+
+set.seed(103)
+imputed <- mice(data, method=meth, predictorMatrix=predM, m=5)
+
+
+
+
+data %>% sapply(function(x) is.numeric(x))
+table(data$RESP)
+mice(data,m=5,maxit=50,meth='pmm',seed=500)
+
+imputed <- hot.deck(data = data, m = 5, cutoff = 10, impContinuous = 'mice')
+
+sum(is.na(imputed$data[[1]]))
+
+
