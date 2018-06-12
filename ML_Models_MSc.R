@@ -15,7 +15,10 @@ library(mice) #for multiple imputation and examining missing data patterns.
 # stopCluster(cl) # Stop cluster computations
 
 
-
+# Converting back to dataframe from tibble (caret is not tibble friendly)
+data <- as.data.frame(data)
+data_facMiss <- as.data.frame(data_facMiss)
+data_noMiss <- as.data.frame(data_noMiss)
 
 # Data Prep ----------------------------------------------------------------------
 
@@ -180,14 +183,15 @@ confusionMatrix(predict(nbFull, testing_noMiss), testing_noMiss$Comp_30)
 
 
 set.seed(337)
-knnFull <- train(as.data.frame(training_noMiss),
-                 training_noMiss$Comp_30,
-                 method = "knn",
-                 metric = "ROC",
-                 tuneLength = 20,
+knnFull <- train(training_dummied,
+                 training_dummied$Comp_30,
+                 method = "kknn",
+                 metric = "Kappa",
+                 tuneLength = 10,
                  preProc = c("center", "scale"),
                  trControl = trCtrl)
-
+confusionMatrix(predict(knnFull, testing_dummied), testing_dummied$Comp_30)
+plot(knnFull)
 
 
 
@@ -195,9 +199,33 @@ knnFull <- train(as.data.frame(training_noMiss),
 # Test code -------------------------------------------------------------------------
 
 
+data_dummied <- data_noMiss
+data_dummied %<>% select(-Group)
+dummies <- dummyVars(~., select(data_dummied, -Comp_30))
+data_dummied <- as.data.frame(predict(dummies, newdata = data_dummied)) %>% 
+     bind_cols(., data_dummied[ncol(data_dummied)])
 
 
 
+nearZeroVar(data_dummied, saveMetrics = TRUE) %>% rownames_to_column(var = 'Variable') %>% 
+     filter(nzv == TRUE)
+nzv <- nearZeroVar(data_dummied, saveMetrics = FALSE)
+data_dummied %<>% select(-nzv)
+
+
+indexpartition <- createDataPartition(data_dummied$Comp_30, p = .8, list = FALSE)
+training_dummied <- data_dummied[indexpartition, ]
+testing_dummied <- data_dummied[-indexpartition, ]
+
+
+
+# kNN R package
+class::knn.cv(train = data_dummied[, -ncol(data_dummied)], 
+              cl = data_dummied$Comp_30, 
+              k = 5, 
+              prob = TRUE)
+
+getModelInfo('knn')$knn$tags
 
 
 
