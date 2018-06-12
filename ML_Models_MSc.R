@@ -59,8 +59,13 @@ predVars <- names(select(data, -c('Comp_30', 'Group')))
 
 
 
-
 # Control objects -------------------------------------------------------------------
+
+
+### Original Control
+
+
+# Cross-fold validation control
 trCtrl <- trainControl(method = "repeatedcv",
                      repeats = 5,
                      summaryFunction = fiveStats,
@@ -68,6 +73,13 @@ trCtrl <- trainControl(method = "repeatedcv",
                      index = index_facMiss,
                      allowParallel = TRUE,
                      verboseIter = TRUE)
+
+
+
+
+
+### Recursive Feature Elimination
+
 
 # Control object for implementing recursive feature elimination
 rfCtrl <- trainControl(method = "repeatedcv",
@@ -77,6 +89,13 @@ rfCtrl <- trainControl(method = "repeatedcv",
                          index = index,
                          allowParallel = TRUE,
                          verboseIter = TRUE)
+
+
+
+
+
+### Selection by Filter
+
 
 # Control object for implementing (needs "functions" argument)
 sbfCtrl <- sbfControl(method = "repeatedcv",
@@ -92,23 +111,28 @@ sbfCtrl <- sbfControl(method = "repeatedcv",
 
 
 ### Random Forest
+
+
 set.seed(337)
-rangerFull <- train(training_noMiss[, predVars],
+rfFull <- train(training_noMiss[, predVars],
                       training_noMiss$Comp_30,
-                      trainControl = trCtrl,
-                      preProc = c("center", "scale"),
-                      num.trees = 20,
-                      seed = 345, 
-                      num.threads = 1,
-                      importance = "permutation")
+                      method = "rf",
+                      metric = "ROC",
+                      tuneLength = 8,
+                      ntree = 1000,
+                      trControl = trCtrl)
 
 confusionMatrix(predict(rfFull, testing_noMiss), testing_noMiss$Comp_30)
 
 
 
+
+
 ### Logistic Regression
+
+
 set.seed(337)
-Basic_logFull <- train(training_noMiss[, predVars],
+logisticFull <- train(training_noMiss[, predVars],
                       training_noMiss$Comp_30,
                       method = 'glm',
                       family = 'binomial',
@@ -118,7 +142,12 @@ Basic_logFull <- train(training_noMiss[, predVars],
 summary(Basic_log)
 
 
+
+
+
 ### SVM
+
+
 set.seed(337)
 svmFull <- train(training_noMiss[, predVars],
                  training_noMiss$Comp_30,
@@ -129,7 +158,12 @@ svmFull <- train(training_noMiss[, predVars],
                  trControl = trCtrl)
 
 
+
+
+
 ### NB
+
+
 nbFull <- train(training_noMiss[, predVars],
                 training_noMiss$Comp_30,
                 method = "nb",
@@ -140,7 +174,11 @@ confusionMatrix(predict(nbFull, testing_noMiss), testing_noMiss$Comp_30)
 
 
 
+
+
 ### kNN
+
+
 set.seed(337)
 knnFull <- train(as.data.frame(training_noMiss),
                  training_noMiss$Comp_30,
