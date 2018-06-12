@@ -777,6 +777,11 @@ data %>% sapply(function(x) is.factor(x)) %>% .[. %in% TRUE] %>% names
 data %>% sapply(function(x) is.numeric(x)) %>% unname
 
 
+# New dataset which treats missing values as additional factors
+data_facMiss <- data %>% mutate_at(fac_names, funs(addNA(., ifany = TRUE)))
+data_facMiss %>% lapply(function(x) levels(x)) 
+
+
 # Labelling class data
 data$Comp_30 <- factor(data$Comp_30, labels = c('Healthy', 'Comp'))
 
@@ -984,4 +989,10 @@ ranges_f <- data %>%
 
 # Removing extraneous environment objects
 rm(list = setdiff(ls(), 'data'))
+
+
+# Data with listwise deletion of missing values
+data_noMiss <- na.omit(data) # Not desirable
+
+
 
