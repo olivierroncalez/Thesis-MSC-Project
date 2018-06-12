@@ -76,7 +76,8 @@ trCtrl <- trainControl(method = "repeatedcv",
                      classProbs = TRUE,
                      index = dummy_index_full, # IMPORTANT! 
                      allowParallel = TRUE,
-                     verboseIter = TRUE)
+                     verboseIter = TRUE,
+                     savePredictions = TRUE)
 
 
 
@@ -115,6 +116,25 @@ sbfCtrl <- sbfControl(method = "repeatedcv",
 # ML Models (Basic Implementation) --------------------------------------------------
 
 
+### Logistic Regression
+
+
+set.seed(337)
+logisticFull <- train(data_dummied[, -ncol(data_dummied)],
+                      data_dummied$Comp_30,
+                      method = 'glm',
+                      family = 'binomial',
+                      preProcess = c('center', 'scale', 'medianImpute'),
+                      trace = 0,
+                      trControl = trCtrl)
+summary(logisticFull)
+# confusionMatrix(predict(logisticFull, testing_dummied), testing_dummied$Comp_30)
+
+
+
+
+
+
 ### Random Forest
 
 
@@ -130,23 +150,6 @@ rfFull <- train(data_dummied[, -ncol(data_dummied)],
 
 confusionMatrix(predict(rfFull, testing_dummied), testing_dummied$Comp_30)
 
-
-
-
-
-### Logistic Regression
-
-
-set.seed(337)
-logisticFull <- train(data_dummied[, -ncol(data_dummied)],
-                      data_dummied$Comp_30,
-                      method = 'glm',
-                      family = 'binomial',
-                      preProcess = c('center', 'scale', 'medianImpute'),
-                      trace = 0,
-                      trControl = trCtrl)
-summary(logisticFull)
-confusionMatrix(predict(logisticFull, testing_dummied), testing_dummied$Comp_30)
 
 
 
@@ -194,6 +197,7 @@ knnFull <- train(data_dummied[ , -ncol(data_dummied)],
                  tuneLength = 10,
                  preProc = c("center", "scale", 'medianImpute'),
                  trControl = trCtrl)
+
 confusionMatrix(predict(knnFull, testing_dummied), testing_dummied$Comp_30)
 plot(knnFull)
 
@@ -261,7 +265,6 @@ nearZeroVar(training_dummied, saveMetrics = TRUE) %>% rownames_to_column(var = '
 
 # Imputation Methods ----------------------------------------------------------------
 
-data %>% sapply(function(x) class(x)) %>% unname
 
 init <- mice(data, maxit = 0)
 meth <- init$method
