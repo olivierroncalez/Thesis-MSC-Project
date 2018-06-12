@@ -22,9 +22,9 @@ stopCluster(cl) # Stop cluster computations
 
 # Holding .2 of the data as independent test set. Balanced partitioning. For original data
 set.seed(337)
-inTraining <- createDataPartition(data$Comp_30, p = 0.8, list = FALSE)
-training <- data[inTraining, ]
-testing <- data[-inTraining, ]
+inTraining_original <- createDataPartition(data$Comp_30, p = 0.8, list = FALSE)
+training_original <- data[inTraining_original, ]
+testing_original <- data[-inTraining_original, ]
 
 
 # Holding .2 of the data as independent test set. Balanced partitioning. For listwise deleted data
@@ -43,7 +43,7 @@ testing_facMiss <- data_facMiss[-inTraining_facMiss, ]
 
 # Create reproducible folds
 set.seed(337)
-index <- createMultiFolds(y = data$Comp_30, times = 5)
+index_original <- createMultiFolds(y = data$Comp_30, times = 5)
 index_noMiss <- createMultiFolds(y = training_noMiss$Comp_30, times = 5)
 index_facMiss <- createMultiFolds(y = training_facMiss$Comp_30, times = 5)
 
@@ -109,12 +109,12 @@ confusionMatrix(predict(rfFull, testing_noMiss), testing_noMiss$Comp_30)
 ### Logistic Regression
 set.seed(337)
 Basic_logFull <- train(training_noMiss[, predVars],
-                       training_noMiss$Comp_30,
-                   method = 'glm',
-                   family = 'binomial',
-                   preProcess = c('center', 'scale'),
-                   trace = 0,
-                   trControl = trCtrl)
+                      training_noMiss$Comp_30,
+                      method = 'glm',
+                      family = 'binomial',
+                      preProcess = c('center', 'scale'),
+                      trace = 0,
+                      trControl = trCtrl)
 summary(Basic_log)
 
 
