@@ -47,9 +47,9 @@ testing_facMiss <- data_facMiss[-inTraining_facMiss, ]
 
 # Create reproducible folds
 set.seed(337)
-index_original <- createMultiFolds(y = data$Comp_30, times = 5)
-index_noMiss <- createMultiFolds(y = training_noMiss$Comp_30, times = 5)
-index_facMiss <- createMultiFolds(y = training_facMiss$Comp_30, times = 5)
+index_original <- createMultiFolds(y = data$Comp_30, times = 3)
+index_noMiss <- createMultiFolds(y = training_noMiss$Comp_30, times = 3)
+index_facMiss <- createMultiFolds(y = training_facMiss$Comp_30, times = 3)
 
 
 # 5 stat summary (ROC, Sens, Spec, Accuracy, Kappa) of model evaluation
@@ -74,7 +74,7 @@ trCtrl <- trainControl(method = "repeatedcv",
                      repeats = 5,
                      summaryFunction = fiveStats,
                      classProbs = TRUE,
-                     index = index_noMiss,
+                     index = dummy_index, # IMPORTANT! 
                      allowParallel = TRUE,
                      verboseIter = TRUE)
 
@@ -87,10 +87,10 @@ trCtrl <- trainControl(method = "repeatedcv",
 
 # Control object for implementing recursive feature elimination
 rfCtrl <- rfeControl(method = "repeatedcv",
-                         repeats = 5,
+                         repeats = 2,
                          summaryFunction = fiveStats,
                          classProbs = TRUE,
-                         index = index_noMiss,
+                         index = index_noMiss, # IMPORTANT! 
                          allowParallel = TRUE,
                          verboseIter = TRUE)
 
@@ -105,7 +105,8 @@ rfCtrl <- rfeControl(method = "repeatedcv",
 sbfCtrl <- sbfControl(method = "repeatedcv",
                       repeats = 5,
                       verbose = TRUE,
-                      index = index_noMiss)
+                      index = index_noMiss # IMPORTANT! 
+                      )
 
 
 
@@ -124,6 +125,7 @@ rfFull <- train(training_dummied[, -ncol(training_dummied)],
                       metric = "ROC",
                       tuneLength = 4,
                       ntree = 1000,
+                preProcess = 'knnImpute',
                       trControl = trCtrl)
 
 confusionMatrix(predict(rfFull, testing_dummied), testing_dummied$Comp_30)
@@ -140,7 +142,7 @@ logisticFull <- train(training_dummied[, -ncol(training_dummied)],
                       training_dummied$Comp_30,
                       method = 'glmStepAIC',
                       family = 'binomial',
-                      preProcess = c('center', 'scale'),
+                      preProcess = c('center', 'scale', 'medianImpute'),
                       trace = 0,
                       trControl = trCtrl)
 summary(logisticFull)
@@ -148,7 +150,7 @@ confusionMatrix(predict(logisticFull, testing_dummied), testing_dummied$Comp_30)
 
 
 
-names(data)
+
 
 ### SVM
 
@@ -158,23 +160,24 @@ svmFull <- train(training_dummied[, -ncol(training_dummied)],
                  training_dummied$Comp_30,
                  method = "svmRadial",
                  metric = "ROC",
-                 tuneLength = 12,
+                 tuneLength = 6,
                  preProc = c("center", "scale"),
                  trControl = trCtrl)
-
+confusionMatrix(predict(svmFull, testing_dummied, type = 'prob'), testing_dummied$Comp_30) # Not working
 
 
 
 ### NB
 
 
-nbFull <- train(training_dummied[, -ncol(training_dummied)],
-                training_dummied$Comp_30,
+nbFull <- train(data_dummied[, -ncol(training_dummied)],
+                data_dummied$Comp_30,
                 method = "nb",
-                metric = "ROC",
+                metric = "Kappa",
+                preProcess = 'medianImpute',
                 trControl = trCtrl)
 nbFull
-confusionMatrix(predict(nbFull, training_dummied), training_dummied$Comp_30)
+confusionMatrix(predict(nbFull, testing_dummied), testing_dummied$Comp_30)
 
 
 
@@ -184,12 +187,12 @@ confusionMatrix(predict(nbFull, training_dummied), training_dummied$Comp_30)
 
 
 set.seed(337)
-knnFull <- train(training_dummied,
+knnFull <- train(training_dummied[ , -ncol(training_dummied)],
                  training_dummied$Comp_30,
                  method = "kknn",
                  metric = "Kappa",
                  tuneLength = 10,
-                 preProc = c("center", "scale"),
+                 preProc = c("center", "scale", 'medianImpute'),
                  trControl = trCtrl)
 confusionMatrix(predict(knnFull, testing_dummied), testing_dummied$Comp_30)
 plot(knnFull)
@@ -198,6 +201,9 @@ plot(knnFull)
 
 
 # Test code -------------------------------------------------------------------------
+
+
+### Dummy variables for no missing data
 
 
 data_dummied <- data_noMiss
@@ -220,13 +226,34 @@ testing_dummied <- data_dummied[-indexpartition, ]
 
 
 
-# kNN R package
-class::knn.cv(train = data_dummied[, -ncol(data_dummied)], 
-              cl = data_dummied$Comp_30, 
-              k = 5, 
-              prob = TRUE)
 
-getModelInfo('knn')$knn$tags
+
+
+### Dummy variables for encoded missing data in factors
+
+
+data_dummied <- data_facMiss
+data_dummied %<>% select(-Group)
+dummies <- dummyVars(~., select(data_dummied, -Comp_30), fullRank = TRUE)
+data_dummied <- as.data.frame(predict(dummies, newdata = data_dummied)) %>% 
+     bind_cols(., data_dummied[ncol(data_dummied)])
+
+
+
+nearZeroVar(data_dummied, saveMetrics = TRUE) %>% rownames_to_column(var = 'Variable') %>% 
+     filter(nzv == TRUE)
+nzv <- nearZeroVar(data_dummied, saveMetrics = FALSE)
+data_dummied %<>% select(-nzv)
+
+
+indexpartition <- createDataPartition(data_dummied$Comp_30, p = .8, list = FALSE)
+training_dummied <- data_dummied[indexpartition, ]
+testing_dummied <- data_dummied[-indexpartition, ]
+dummy_index <- createMultiFolds(training_dummied$Comp_30, times = 3)
+
+
+nearZeroVar(training_dummied, saveMetrics = TRUE) %>% rownames_to_column(var = 'Variable') %>% 
+     filter(nzv == TRUE | zeroVar == TRUE)
 
 
 
