@@ -14,6 +14,7 @@ library(magrittr)
 
 
 
+
 # Setting working directory
 setwd("~/Desktop/R Code/Thesis Project")
 
@@ -770,7 +771,7 @@ data <- filter(data, !is.na(Comp_30))
 # Data converted to factors here... ### NOT DONE
 fac_names <- data %>%  select(-c(Age, N)) %>% names # Extract names of soon-to-be factor variables
 data %<>%mutate_at(fac_names, funs(factor(.))) # Update data by mutating to factor variables
-rm('fac_names')
+
 
 # Factor names (verifying)
 data %>% sapply(function(x) is.factor(x)) %>% .[. %in% TRUE] %>% names
@@ -778,8 +779,9 @@ data %>% sapply(function(x) is.numeric(x)) %>% unname
 
 
 # New dataset which treats missing values as additional factors
-data_facMiss <- data %>% mutate_at(fac_names, funs(addNA(., ifany = TRUE)))
+data_facMiss <- data %>% mutate_at(fac_names, funs(fct_explicit_na(.)))
 data_facMiss %>% lapply(function(x) levels(x)) 
+rm('fac_names')
 
 
 # Labelling class data
@@ -988,7 +990,8 @@ ranges_f <- data %>%
 ###########################################
 
 # Removing extraneous environment objects
-rm(list = setdiff(ls(), 'data'))
+rm(list = setdiff(ls(), c('data', 'data_facMiss')))
+cat("\014") # Clear console
 
 
 # Data with listwise deletion of missing values
