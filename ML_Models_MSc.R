@@ -74,7 +74,7 @@ trCtrl <- trainControl(method = "repeatedcv",
                      repeats = 5,
                      summaryFunction = fiveStats,
                      classProbs = TRUE,
-                     index = dummy_index, # IMPORTANT! 
+                     index = dummy_index_full, # IMPORTANT! 
                      allowParallel = TRUE,
                      verboseIter = TRUE)
 
@@ -119,8 +119,8 @@ sbfCtrl <- sbfControl(method = "repeatedcv",
 
 
 set.seed(337)
-rfFull <- train(training_dummied[, -ncol(training_dummied)],
-                training_dummied$Comp_30,
+rfFull <- train(data_dummied[, -ncol(data_dummied)],
+                data_dummied$Comp_30,
                       method = "rf",
                       metric = "ROC",
                       tuneLength = 4,
@@ -138,9 +138,9 @@ confusionMatrix(predict(rfFull, testing_dummied), testing_dummied$Comp_30)
 
 
 set.seed(337)
-logisticFull <- train(training_dummied[, -ncol(training_dummied)],
-                      training_dummied$Comp_30,
-                      method = 'glmStepAIC',
+logisticFull <- train(data_dummied[, -ncol(data_dummied)],
+                      data_dummied$Comp_30,
+                      method = 'glm',
                       family = 'binomial',
                       preProcess = c('center', 'scale', 'medianImpute'),
                       trace = 0,
@@ -156,8 +156,8 @@ confusionMatrix(predict(logisticFull, testing_dummied), testing_dummied$Comp_30)
 
 
 set.seed(337)
-svmFull <- train(training_dummied[, -ncol(training_dummied)],
-                 training_dummied$Comp_30,
+svmFull <- train(data_dummied[, -ncol(data_dummied)],
+                 data_dummied$Comp_30,
                  method = "svmRadial",
                  metric = "ROC",
                  tuneLength = 6,
@@ -170,7 +170,7 @@ confusionMatrix(predict(svmFull, testing_dummied, type = 'prob'), testing_dummie
 ### NB
 
 
-nbFull <- train(data_dummied[, -ncol(training_dummied)],
+nbFull <- train(data_dummied[, -ncol(data_dummied)],
                 data_dummied$Comp_30,
                 method = "nb",
                 metric = "Kappa",
@@ -187,8 +187,8 @@ confusionMatrix(predict(nbFull, testing_dummied), testing_dummied$Comp_30)
 
 
 set.seed(337)
-knnFull <- train(training_dummied[ , -ncol(training_dummied)],
-                 training_dummied$Comp_30,
+knnFull <- train(data_dummied[ , -ncol(data_dummied)],
+                 data_dummied$Comp_30,
                  method = "kknn",
                  metric = "Kappa",
                  tuneLength = 10,
@@ -250,6 +250,7 @@ indexpartition <- createDataPartition(data_dummied$Comp_30, p = .8, list = FALSE
 training_dummied <- data_dummied[indexpartition, ]
 testing_dummied <- data_dummied[-indexpartition, ]
 dummy_index <- createMultiFolds(training_dummied$Comp_30, times = 3)
+dummy_index_full <- createMultiFolds(data_dummied$Comp_30, times = 3)
 
 
 nearZeroVar(training_dummied, saveMetrics = TRUE) %>% rownames_to_column(var = 'Variable') %>% 
@@ -257,3 +258,4 @@ nearZeroVar(training_dummied, saveMetrics = TRUE) %>% rownames_to_column(var = '
 
 
 
+preProcess(x = data_dummied, pcaComp)
