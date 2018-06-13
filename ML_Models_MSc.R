@@ -5,7 +5,6 @@ source('Data_Cleaning_MSc.R')
 # Loading required packages
 library(caret)
 library(doParallel) # Parallel computations
-library(mice) #for multiple imputation and examining missing data patterns.
 
 
 # Parallelizing computations 
@@ -20,15 +19,25 @@ registerDoSEQ() # Unregister doParallel
 data <- as.data.frame(data)
 data_facMiss <- as.data.frame(data_facMiss)
 data_noMiss <- as.data.frame(data_noMiss)
+data_facMiss_dummied <- as.data.frame(data_facMiss_dummied)
+
+
+
+
+
 
 # Data Prep ----------------------------------------------------------------------
 
 
-# Holding .2 of the data as independent test set. Balanced partitioning. For original data
+### Training/Testing Split
+
+
+# Holding .2 of the data as independent test set. Balanced partitioning. For dummied missing factor data
 set.seed(337)
-inTraining_original <- createDataPartition(data$Comp_30, p = 0.8, list = FALSE)
-training_original <- data[inTraining_original, ]
-testing_original <- data[-inTraining_original, ]
+idx <- createDataPartition(data_facMiss_dummied$Comp_30, p = .8, list = FALSE) # Creating index to partition data
+training_dummied_fac_Miss <- data_facMiss_dummied[idx, ] # Training
+testing_dummied_fac_Miss <- data_facMiss_dummied[-idx, ] # Testing
+rm('idx')
 
 
 # Holding .2 of the data as independent test set. Balanced partitioning. For listwise deleted data
@@ -36,6 +45,7 @@ set.seed(337)
 inTraining_noMiss <- createDataPartition(data_noMiss$Comp_30, p = 0.8, list = FALSE)
 training_noMiss <- data_noMiss[inTraining_noMiss, ]
 testing_noMiss <- data_noMiss[-inTraining_noMiss, ]
+rm('inTraining_noMiss') # Remove index
 
 
 # Holding .2 of the data as independent test set. Balanced partitioning. For missing factor data
@@ -43,13 +53,27 @@ set.seed(337)
 inTraining_facMiss <- createDataPartition(data_facMiss$Comp_30, p = 0.8, list = FALSE)
 training_facMiss <- data_facMiss[inTraining_facMiss, ]
 testing_facMiss <- data_facMiss[-inTraining_facMiss, ]
+rm('inTraining_facMiss') # Remove index
 
 
-# Create reproducible folds
+
+
+### Cross-Fold Validation index generation
+
+# Create reproducible folds (10 fold validation 3 times) - ensures same folds used to train different models. Mainly used as validation set for models
+# requiring parameter tuning, but can also provide some interesting insight.
 set.seed(337)
-index_original <- createMultiFolds(y = data$Comp_30, times = 3)
-index_noMiss <- createMultiFolds(y = training_noMiss$Comp_30, times = 3)
-index_facMiss <- createMultiFolds(y = training_facMiss$Comp_30, times = 3)
+dummy_index <- createMultiFolds(training_dummied_fac_Miss$Comp_30, times = 3) # Dummied factor missing data
+set.seed(337)
+index_noMiss <- createMultiFolds(y = training_noMiss$Comp_30, times = 3) # No missing data
+set.seed(337)
+index_facMiss <- createMultiFolds(y = training_facMiss$Comp_30, times = 3) # Factor missing data
+
+
+
+
+
+### Additional objects
 
 
 # 5 stat summary (ROC, Sens, Spec, Accuracy, Kappa) of model evaluation
@@ -57,7 +81,7 @@ fiveStats <- function(...) c(twoClassSummary(...), defaultSummary(...))
 
 
 # Prediction variables
-predVars <- names(select(data, -c('Comp_30', 'Group')))
+predVars <- names(select(training_dummied_fac_Miss, -Comp_30)) # Predictor names
 
 
 
@@ -71,10 +95,10 @@ predVars <- names(select(data, -c('Comp_30', 'Group')))
 
 # Cross-fold validation control
 trCtrl <- trainControl(method = "repeatedcv",
-                     repeats = 5,
+                     repeats = 3,
                      summaryFunction = fiveStats,
                      classProbs = TRUE,
-                     index = dummy_index_full, # IMPORTANT! 
+                     index = dummy_index, # IMPORTANT! 
                      allowParallel = TRUE,
                      verboseIter = TRUE,
                      savePredictions = TRUE)
@@ -91,7 +115,7 @@ rfCtrl <- rfeControl(method = "repeatedcv",
                          repeats = 2,
                          summaryFunction = fiveStats,
                          classProbs = TRUE,
-                         index = index_noMiss, # IMPORTANT! 
+                         index = dummy_index, # IMPORTANT! 
                          allowParallel = TRUE,
                          verboseIter = TRUE)
 
@@ -120,15 +144,18 @@ sbfCtrl <- sbfControl(method = "repeatedcv",
 
 
 set.seed(337)
-logisticFull <- train(data_dummied[, -ncol(data_dummied)],
-                      data_dummied$Comp_30,
+logisticFull <- train(training_dummied_fac_Miss[, -ncol(training_dummied_fac_Miss)], # Last column is target
+                      training_dummied_fac_Miss$Comp_30,
                       method = 'glm',
                       family = 'binomial',
-                      preProcess = c('center', 'scale', 'medianImpute'),
-                      trace = 0,
+                      preProcess = c('center', 'scale'),
+                      trace = 0, # No verbose printout
                       trControl = trCtrl)
-summary(logisticFull)
-# confusionMatrix(predict(logisticFull, testing_dummied), testing_dummied$Comp_30)
+summary(logisticFull) # GLM model info
+logisticFull # Caret model info
+
+logisticFull_pred <- predict(logisticFull, testing_dummied_fac_Miss) # Predicting test set
+confusionMatrix(logisticFull_pred, testing_dummied_fac_Miss$Comp_30) # Confusion matrix
 
 
 
@@ -138,18 +165,21 @@ summary(logisticFull)
 ### Random Forest
 
 
+# Grid of tuning parameters to try
+rf_grid <- expand.grid(mtry = c(1:10))
+
 set.seed(337)
-rfFull <- train(data_dummied[, -ncol(data_dummied)],
-                data_dummied$Comp_30,
+rfFull <- train(training_dummied_fac_Miss[, -ncol(training_dummied_fac_Miss)],
+                training_dummied_fac_Miss$Comp_30,
                       method = "rf",
                       metric = "ROC",
-                      tuneLength = 4,
+                      tuneGrid = rf_grid,
                       ntree = 1000,
-                preProcess = 'knnImpute',
                       trControl = trCtrl)
+rfFull # Model info
 
-confusionMatrix(predict(rfFull, testing_dummied), testing_dummied$Comp_30)
-
+rfFull_pred <- predict(rfFull, testing_dummied_fac_Miss) # Predicting test set
+confusionMatrix(rfFull_pred, testing_dummied_fac_Miss$Comp_30) # Confusion matrix
 
 
 
@@ -159,28 +189,32 @@ confusionMatrix(predict(rfFull, testing_dummied), testing_dummied$Comp_30)
 
 
 set.seed(337)
-svmFull <- train(data_dummied[, -ncol(data_dummied)],
-                 data_dummied$Comp_30,
+svmFull <- train(training_dummied_fac_Miss[, -ncol(training_dummied_fac_Miss)],
+                 training_dummied_fac_Miss$Comp_30,
                  method = "svmRadial",
                  metric = "ROC",
                  tuneLength = 6,
                  preProc = c("center", "scale"),
                  trControl = trCtrl)
-confusionMatrix(predict(svmFull, testing_dummied, type = 'prob'), testing_dummied$Comp_30) # Not working
+svmFull # Model info
+
+
 
 
 
 ### NB
 
 
-nbFull <- train(data_dummied[, -ncol(data_dummied)],
-                data_dummied$Comp_30,
+nbFull <- train(training_dummied_fac_Miss[, -ncol(training_dummied_fac_Miss)],
+                training_dummied_fac_Miss$Comp_30,
                 method = "nb",
-                metric = "Kappa",
+                metric = "ROC",
                 preProcess = 'medianImpute',
                 trControl = trCtrl)
-nbFull
-confusionMatrix(predict(nbFull, testing_dummied), testing_dummied$Comp_30)
+nbFull # Model info
+
+nbFull_pred <- predict(nbFull, testing_dummied_fac_Miss) # Predicting test set
+confusionMatrix(nbFull_pred, testing_dummied_fac_Miss$Comp_30) # Confusion matrix
 
 
 
@@ -190,16 +224,48 @@ confusionMatrix(predict(nbFull, testing_dummied), testing_dummied$Comp_30)
 
 
 set.seed(337)
-knnFull <- train(data_dummied[ , -ncol(data_dummied)],
-                 data_dummied$Comp_30,
+knnFull <- train(training_dummied_fac_Miss[ , -ncol(training_dummied_fac_Miss)],
+                 training_dummied_fac_Miss$Comp_30,
                  method = "kknn",
-                 metric = "Kappa",
+                 metric = "ROC",
                  tuneLength = 10,
-                 preProc = c("center", "scale", 'medianImpute'),
+                 preProc = c("center", "scale"),
                  trControl = trCtrl)
+knnFull # Model info
 
-confusionMatrix(predict(knnFull, testing_dummied), testing_dummied$Comp_30)
-plot(knnFull)
+knnFull_pred <- predict(knnFull, testing_dummied_fac_Miss) # Predicting test set
+confusionMatrix(knnFull_pred, testing_dummied_fac_Miss$Comp_30) # Confusion matrix
+
+
+
+
+
+### Neural Network
+
+
+set.seed(337)
+nnetFull <- train(training_dummied_fac_Miss[ , -ncol(training_dummied_fac_Miss)],
+                  training_dummied_fac_Miss$Comp_30,
+                  method = 'nnet',
+                  tuneLength = 4,
+                  trace = FALSE, lineout = TRUE)
+nnetFull # Model info
+
+nnetFull_pred <- predict(nnetFull, testing_dummied_fac_Miss) # Predicting test set
+confusionMatrix(nnet_pred, testing_dummied_fac_Miss$Comp_30) # Confusion matrix
+
+
+
+
+set.seed(337)
+test_reg_rand <- train(training_dummied_fac_Miss[ , -ncol(training_dummied_fac_Miss)],
+                       training_dummied_fac_Miss$Comp_30,
+                       method = "neuralnet", 
+                       trControl = trCtrl,
+                       tuneLength = 4,
+                       rep = 10,
+                       threshold = 0.1,
+                       preProc = c("center", "scale"))
 
 
 
@@ -233,31 +299,6 @@ testing_dummied <- data_dummied[-indexpartition, ]
 
 
 
-### Dummy variables for encoded missing data in factors
-
-
-data_dummied <- data_facMiss
-data_dummied %<>% select(-Group)
-dummies <- dummyVars(~., select(data_dummied, -Comp_30), fullRank = TRUE)
-data_dummied <- as.data.frame(predict(dummies, newdata = data_dummied)) %>% 
-     bind_cols(., data_dummied[ncol(data_dummied)])
-
-
-nearZeroVar(data_dummied, saveMetrics = TRUE) %>% rownames_to_column(var = 'Variable') %>% 
-     filter(nzv == TRUE)
-nzv <- nearZeroVar(data_dummied, saveMetrics = FALSE)
-data_dummied %<>% select(-nzv)
-
-
-indexpartition <- createDataPartition(data_dummied$Comp_30, p = .8, list = FALSE)
-training_dummied <- data_dummied[indexpartition, ]
-testing_dummied <- data_dummied[-indexpartition, ]
-dummy_index <- createMultiFolds(training_dummied$Comp_30, times = 3)
-dummy_index_full <- createMultiFolds(data_dummied$Comp_30, times = 3)
-
-
-nearZeroVar(training_dummied, saveMetrics = TRUE) %>% rownames_to_column(var = 'Variable') %>% 
-     filter(nzv == TRUE | zeroVar == TRUE)
 
 
 
@@ -266,24 +307,10 @@ nearZeroVar(training_dummied, saveMetrics = TRUE) %>% rownames_to_column(var = '
 # Imputation Methods ----------------------------------------------------------------
 
 
-init <- mice(data, maxit = 0)
-meth <- init$method
-predM <- init$predictorMatrix
+### Hot Deck Imputation
 
-predM[, c('Group', 'Comp_30')] <- 0
-
-set.seed(103)
-imputed <- mice(data, method=meth, predictorMatrix=predM, m=5)
-
-
-
-
-data %>% sapply(function(x) is.numeric(x))
-table(data$RESP)
-mice(data,m=5,maxit=50,meth='pmm',seed=500)
-
+# Generating imputed datasets
 imputed <- hot.deck(data = data, m = 5, cutoff = 10, impContinuous = 'mice')
-
 sum(is.na(imputed$data[[1]]))
-
+nearZeroVar(imputed$data[[1]], saveMetrics = TRUE)
 
