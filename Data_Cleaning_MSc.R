@@ -1090,6 +1090,20 @@ data_facMiss_dummied <- na.omit(data_facMiss_dummied) # N cannot be imputed, and
 
 
 
+### Recoding into factors for factor-capable models (tree-based and Naive Bayes)
+
+
+# Tree-based methods and Naive Bayes can take in factor data, but the other models might work best if
+# the data is not re-coded back into factor predictors.
+
+f_names <- data_facMiss_dummied %>% select(-c('Age', 'N')) %>% names
+
+# Re-converting to factors
+data_facMiss_dummied_cat <- data_facMiss_dummied %>% mutate_at(f_names, funs(factor(.)))
+# Checking factor conversion
+data_facMiss_dummied_cat %>% sapply(is.factor) %>% .[. %in% TRUE] %>% names
+data_facMiss_dummied_cat %>% sapply(is.numeric) %>% .[. %in% TRUE] %>% names
+
 
 
 
@@ -1110,17 +1124,16 @@ dev.off() # Clear plots
 
 # Test Code -------------------------------------------------------------------------
 
-f_names <- data_facMiss_dummied %>% select(-c('Age', 'N')) %>% names
-
-# Re-converting to factors
-data_facMiss_dummied <- data_facMiss_dummied %>% mutate_at(f_names, funs(factor(.)))
-# Checking factor conversion
-data_facMiss_dummied %>% sapply(is.factor) %>% .[. %in% TRUE] %>% names
-data_facMiss_dummied %>% sapply(is.numeric) %>% .[. %in% TRUE] %>% names
 
 
 
 
+
+
+
+
+
+# Added breapoint before test section to prevent script from running test code automatically
 
 
 
