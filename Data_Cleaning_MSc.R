@@ -1048,6 +1048,40 @@ sum(complete.cases(data))/nrow(data) # 57% of data have no missing values (43% w
 
 
 
+# Dummy Variables -------------------------------------------------------------------
+
+
+### Dummy variables for encoded missing data in factors 
+
+
+# Create new data & dummy object 
+data_facMiss_dummied <- data_facMiss %>% select(-Group) # New data (excluding group)
+dummy_obj <- dummyVars(~. -Comp_30, data_facMiss_dummied, fullRank = TRUE) # Create dummy variable encoding object
+
+
+# Replace dataset with new dummy variables
+data_facMiss_dummied <- as.data.frame(predict(dummy_obj, newdata = data_facMiss_dummied)) %>% 
+     bind_cols(., data_facMiss_dummied[ncol(data_facMiss_dummied)])
+
+
+# Detect and eliminate (near) zero variance predictors
+nearZeroVar(data_facMiss_dummied, saveMetrics = TRUE) %>% rownames_to_column(var = 'Variable') %>% 
+     filter(nzv == TRUE) # Printout of variables 
+nzv <- nearZeroVar(data_facMiss_dummied, saveMetrics = FALSE) # Retrieve indices of near zero var predictors
+data_facMiss_dummied %<>% select(-nzv) # Eliminate variables with near zero var
+data_facMiss_dummied %<>% select(-c(`Margins.(Missing)`, `Extracaps.(Missing)`)) # Eliminated two additional variables which proved to be
+# near zero variance in the training set.
+
+
+
+data_facMiss_dummied %>% sapply(function(x) sum(is.na(x))) %>% .[. > 0]
+
+
+
+
+
+
+
 
 
 
@@ -1057,9 +1091,9 @@ sum(complete.cases(data))/nrow(data) # 57% of data have no missing values (43% w
 ###########################################
 
 # Removing extraneous environment objects
-rm(list = setdiff(ls(), c('data', 'data_facMiss', 'data_noMiss')))
+rm(list = setdiff(ls(), c('data', 'data_facMiss', 'data_noMiss', 'data_facMiss_dummied')))
 cat("\014") # Clear console
-
+dev.off() # Clear plots
 
 
 
