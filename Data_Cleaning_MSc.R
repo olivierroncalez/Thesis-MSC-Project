@@ -1028,6 +1028,10 @@ data_facMiss %>% lapply(function(x) levels(x)) # levels
 data_facMiss %>% sapply(function(x) sum(is.na(x))) %>% .[. > 0] # Columns with remaining missing values
 
 
+# Combining several levels of Site into one group
+data_facMiss$Site <- fct_other(data_facMiss$Site, keep = c(2, 13, 7, 3)) # Keeping only these factor levels and lumping the rest
+fct_count(data_facMiss$Site) # Verifying new factor levels
+
 
 
 
@@ -1097,6 +1101,36 @@ data_facMiss_dummied <- na.omit(data_facMiss_dummied) # N cannot be imputed, and
 rm(list = setdiff(ls(), c('data', 'data_facMiss', 'data_noMiss', 'data_facMiss_dummied')))
 cat("\014") # Clear console
 dev.off() # Clear plots
+
+
+
+
+# Test Code -------------------------------------------------------------------------
+names(data_facMiss_dummied)
+f_names <- data_facMiss_dummied %>% select(-c('Age', 'N')) %>% names
+
+# Re-converting to factors
+data_facMiss_dummied <- data_facMiss_dummied %>% mutate_at(f_names, funs(factor(.)))
+# Checking factor conversion
+data_facMiss_dummied %>% sapply(is.factor) %>% .[. %in% TRUE] %>% names
+data_facMiss_dummied %>% sapply(is.numeric) %>% .[. %in% TRUE] %>% names
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
