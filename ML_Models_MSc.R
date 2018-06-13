@@ -38,6 +38,8 @@ set.seed(337)
 idx <- createDataPartition(data_facMiss_dummied$Comp_30, p = .8, list = FALSE) # Creating index to partition data
 training_dummied_fac_Miss <- data_facMiss_dummied[idx, ] # Training
 testing_dummied_fac_Miss <- data_facMiss_dummied[-idx, ] # Testing
+training_dummied_fac_Miss_cat <- data_facMiss_dummied_cat[idx, ] # Training (same but recoded as factors)
+testing_dummied_fac_Miss_cat <- data_facMiss_dummied_cat[-idx, ] # Testing (same data but recoded as factors)
 rm('idx')
 
 
@@ -83,6 +85,7 @@ fiveStats <- function(...) c(twoClassSummary(...), defaultSummary(...))
 
 # Prediction variables
 predVars <- names(select(training_dummied_fac_Miss, -Comp_30)) # Predictor names
+
 
 
 
@@ -201,12 +204,17 @@ confusionMatrix(logisticFull_pred, testing_dummied_fac_Miss$Comp_30) # Confusion
 ####################################
 
 
+# WARNING : The dataset used here is the exact same as those used in other models EXCEPT 
+# for the fact that factor variables have been recoded as such. All indices and order are
+# retained. The append of '_cat' symbolizes this.
+
+
 # Grid of tuning parameters to try
 rf_grid <- expand.grid(mtry = c(1:10))
 
 set.seed(337)
-rfFull <- train(training_dummied_fac_Miss[, -ncol(training_dummied_fac_Miss)],
-                training_dummied_fac_Miss$Comp_30,
+rfFull <- train(training_dummied_fac_Miss_cat[, -ncol(training_dummied_fac_Miss_cat)],
+                training_dummied_fac_Miss_cat$Comp_30,
                       method = "rf",
                       metric = "ROC",
                       tuneGrid = rf_grid,
@@ -215,8 +223,8 @@ rfFull <- train(training_dummied_fac_Miss[, -ncol(training_dummied_fac_Miss)],
 rfFull # Model info
 
 
-rfFull_pred <- predict(rfFull, testing_dummied_fac_Miss) # Predicting test set
-confusionMatrix(rfFull_pred, testing_dummied_fac_Miss$Comp_30) # Confusion matrix
+rfFull_pred <- predict(rfFull, training_dummied_fac_Miss_cat) # Predicting test set
+confusionMatrix(rfFull_pred, training_dummied_fac_Miss_cat$Comp_30) # Confusion matrix
 
 
 
@@ -246,9 +254,14 @@ svmFull # Model info
 ####################################
 
 
+# WARNING : The dataset used here is the exact same as those used in other models EXCEPT 
+# for the fact that factor variables have been recoded as such. All indices and order are
+# retained. The append of '_cat' symbolizes this.
+
+
 set.seed(337)
-nbFull <- train(training_dummied_fac_Miss[, -ncol(training_dummied_fac_Miss)],
-                training_dummied_fac_Miss$Comp_30,
+nbFull <- train(training_dummied_fac_Miss_cat[, -ncol(training_dummied_fac_Miss_cat)],
+                training_dummied_fac_Miss_cat$Comp_30,
                 method = "nb",
                 metric = "ROC",
                 preProcess = 'medianImpute',
@@ -256,8 +269,8 @@ nbFull <- train(training_dummied_fac_Miss[, -ncol(training_dummied_fac_Miss)],
 nbFull # Model info
 
 
-nbFull_pred <- predict(nbFull, testing_dummied_fac_Miss) # Predicting test set
-confusionMatrix(nbFull_pred, testing_dummied_fac_Miss$Comp_30) # Confusion matrix
+nbFull_pred <- predict(nbFull, testing_dummied_fac_Miss_cat) # Predicting test set
+confusionMatrix(nbFull_pred, testing_dummied_fac_Miss_cat$Comp_30) # Confusion matrix
 
 
 
