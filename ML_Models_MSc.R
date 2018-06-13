@@ -8,7 +8,7 @@ library(doParallel) # Parallel computations
 
 
 # Parallelizing computations 
-cl <- makeCluster(7, outfile = '')
+cl <- makeCluster(15, outfile = '')
 registerDoParallel(cl) # Change to acceptable number of cores based on your feasability
 getDoParWorkers()
 stopCluster(cl) # Stop cluster computations
@@ -90,10 +90,12 @@ predVars <- names(select(training_dummied_fac_Miss, -Comp_30)) # Predictor names
 # Control objects -------------------------------------------------------------------
 
 
+####################################
 ### Original Control
+####################################
 
 
-# Cross-fold validation control
+# Cross-fold validation control (computational nuances)
 trCtrl <- trainControl(method = "repeatedcv",
                      repeats = 3,
                      summaryFunction = fiveStats,
@@ -107,12 +109,14 @@ trCtrl <- trainControl(method = "repeatedcv",
 
 
 
+####################################
 ### Recursive Feature Elimination
+####################################
 
 
 # Control object for implementing recursive feature elimination
 rfCtrl <- rfeControl(method = "repeatedcv",
-                         repeats = 2,
+                         repeats = 3,
                          summaryFunction = fiveStats,
                          classProbs = TRUE,
                          index = dummy_index, # IMPORTANT! 
@@ -123,7 +127,9 @@ rfCtrl <- rfeControl(method = "repeatedcv",
 
 
 
+####################################
 ### Selection by Filter
+####################################
 
 
 # Control object for implementing (needs "functions" argument)
@@ -137,10 +143,13 @@ sbfCtrl <- sbfControl(method = "repeatedcv",
 
 
 
+
 # ML Models (Basic Implementation) --------------------------------------------------
 
 
+####################################
 ### Logistic Regression
+####################################
 
 
 set.seed(337)
@@ -154,6 +163,7 @@ logisticFull <- train(training_dummied_fac_Miss[, -ncol(training_dummied_fac_Mis
 summary(logisticFull) # GLM model info
 logisticFull # Caret model info
 
+
 logisticFull_pred <- predict(logisticFull, testing_dummied_fac_Miss) # Predicting test set
 confusionMatrix(logisticFull_pred, testing_dummied_fac_Miss$Comp_30) # Confusion matrix
 
@@ -162,7 +172,9 @@ confusionMatrix(logisticFull_pred, testing_dummied_fac_Miss$Comp_30) # Confusion
 
 
 
+####################################
 ### Random Forest
+####################################
 
 
 # Grid of tuning parameters to try
@@ -178,6 +190,7 @@ rfFull <- train(training_dummied_fac_Miss[, -ncol(training_dummied_fac_Miss)],
                       trControl = trCtrl)
 rfFull # Model info
 
+
 rfFull_pred <- predict(rfFull, testing_dummied_fac_Miss) # Predicting test set
 confusionMatrix(rfFull_pred, testing_dummied_fac_Miss$Comp_30) # Confusion matrix
 
@@ -185,7 +198,9 @@ confusionMatrix(rfFull_pred, testing_dummied_fac_Miss$Comp_30) # Confusion matri
 
 
 
+####################################
 ### SVM
+####################################
 
 
 set.seed(337)
@@ -202,9 +217,12 @@ svmFull # Model info
 
 
 
+####################################
 ### NB
+####################################
 
 
+set.seed(337)
 nbFull <- train(training_dummied_fac_Miss[, -ncol(training_dummied_fac_Miss)],
                 training_dummied_fac_Miss$Comp_30,
                 method = "nb",
@@ -213,6 +231,7 @@ nbFull <- train(training_dummied_fac_Miss[, -ncol(training_dummied_fac_Miss)],
                 trControl = trCtrl)
 nbFull # Model info
 
+
 nbFull_pred <- predict(nbFull, testing_dummied_fac_Miss) # Predicting test set
 confusionMatrix(nbFull_pred, testing_dummied_fac_Miss$Comp_30) # Confusion matrix
 
@@ -220,7 +239,9 @@ confusionMatrix(nbFull_pred, testing_dummied_fac_Miss$Comp_30) # Confusion matri
 
 
 
+####################################
 ### kNN
+####################################
 
 
 set.seed(337)
@@ -233,6 +254,7 @@ knnFull <- train(training_dummied_fac_Miss[ , -ncol(training_dummied_fac_Miss)],
                  trControl = trCtrl)
 knnFull # Model info
 
+
 knnFull_pred <- predict(knnFull, testing_dummied_fac_Miss) # Predicting test set
 confusionMatrix(knnFull_pred, testing_dummied_fac_Miss$Comp_30) # Confusion matrix
 
@@ -240,7 +262,9 @@ confusionMatrix(knnFull_pred, testing_dummied_fac_Miss$Comp_30) # Confusion matr
 
 
 
+####################################
 ### Neural Network
+####################################
 
 
 set.seed(337)
@@ -251,10 +275,22 @@ nnetFull <- train(training_dummied_fac_Miss[ , -ncol(training_dummied_fac_Miss)]
                   trace = FALSE, lineout = TRUE)
 nnetFull # Model info
 
+
 nnetFull_pred <- predict(nnetFull, testing_dummied_fac_Miss) # Predicting test set
 confusionMatrix(nnet_pred, testing_dummied_fac_Miss$Comp_30) # Confusion matrix
 
 
+
+
+
+# Model Comparisons  ----------------------------------------------------------------
+
+model_list <- list(logisticFull,
+                   rfFull,
+                   svmFull,
+                   nbFull,
+                   knnFull,
+                   nnetFull)
 
 
 
