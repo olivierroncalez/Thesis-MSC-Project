@@ -257,15 +257,7 @@ confusionMatrix(nnet_pred, testing_dummied_fac_Miss$Comp_30) # Confusion matrix
 
 
 
-set.seed(337)
-test_reg_rand <- train(training_dummied_fac_Miss[ , -ncol(training_dummied_fac_Miss)],
-                       training_dummied_fac_Miss$Comp_30,
-                       method = "neuralnet", 
-                       trControl = trCtrl,
-                       tuneLength = 4,
-                       rep = 10,
-                       threshold = 0.1,
-                       preProc = c("center", "scale"))
+
 
 
 
