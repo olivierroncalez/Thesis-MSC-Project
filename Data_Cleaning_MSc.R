@@ -1014,8 +1014,9 @@ ranges_f <- data %>%
 
 
 
-
+######################################################################################
 ### Data with missing categorical data as factor level (MISSING DATA FACTOR LEVEL)
+######################################################################################
 
 
 # New dataset which treats missing values as additional factors (for factor variables)
@@ -1036,7 +1037,9 @@ fct_count(data_facMiss$Site) # Verifying new factor levels
 
 
 
+######################################################################################
 ### Dataset with listwise deletion of missing data (LISTWISE DELETION)
+######################################################################################
 
 
 # Data with listwise deletion of missing values
@@ -1063,7 +1066,7 @@ data_facMiss_dummied <- data_facMiss %>% select(-Group) # New data (excluding gr
 dummy_obj <- dummyVars(~. -Comp_30, data_facMiss_dummied, fullRank = TRUE) # Create dummy variable encoding object
 
 
-# Replace dataset with new dummy variables
+# Replace dataset with new dummy variables (will convert into integers)
 data_facMiss_dummied <- as.data.frame(predict(dummy_obj, newdata = data_facMiss_dummied)) %>% 
      bind_cols(., data_facMiss_dummied[ncol(data_facMiss_dummied)])
 
@@ -1106,7 +1109,7 @@ dev.off() # Clear plots
 
 
 # Test Code -------------------------------------------------------------------------
-names(data_facMiss_dummied)
+
 f_names <- data_facMiss_dummied %>% select(-c('Age', 'N')) %>% names
 
 # Re-converting to factors
