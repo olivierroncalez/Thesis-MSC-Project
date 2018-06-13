@@ -26,6 +26,7 @@ data_facMiss_dummied <- as.data.frame(data_facMiss_dummied)
 
 
 
+
 # Data Prep ----------------------------------------------------------------------
 
 
@@ -152,6 +153,8 @@ sbfCtrl <- sbfControl(method = "repeatedcv",
 ####################################
 
 
+### Standard Logistic Regression
+
 set.seed(337)
 logisticFull <- train(training_dummied_fac_Miss[, -ncol(training_dummied_fac_Miss)], # Last column is target
                       training_dummied_fac_Miss$Comp_30,
@@ -162,6 +165,27 @@ logisticFull <- train(training_dummied_fac_Miss[, -ncol(training_dummied_fac_Mis
                       trControl = trCtrl)
 summary(logisticFull) # GLM model info
 logisticFull # Caret model info
+
+
+logisticFull_pred <- predict(logisticFull, testing_dummied_fac_Miss) # Predicting test set
+confusionMatrix(logisticFull_pred, testing_dummied_fac_Miss$Comp_30) # Confusion matrix
+
+
+
+
+### AIC Log
+
+
+set.seed(337)
+LogAICFull <- train(training_dummied_fac_Miss[, -ncol(training_dummied_fac_Miss)], # Last column is target
+                      training_dummied_fac_Miss$Comp_30,
+                      method = 'glmStepAIC',
+                      family = 'binomial',
+                      preProcess = c('center', 'scale'),
+                      trace = 0, # No verbose printout
+                      trControl = trCtrl)
+summary(LogAICFull) # GLM model info
+LogAICFull # Caret model info
 
 
 logisticFull_pred <- predict(logisticFull, testing_dummied_fac_Miss) # Predicting test set
@@ -277,7 +301,7 @@ nnetFull # Model info
 
 
 nnetFull_pred <- predict(nnetFull, testing_dummied_fac_Miss) # Predicting test set
-confusionMatrix(nnet_pred, testing_dummied_fac_Miss$Comp_30) # Confusion matrix
+confusionMatrix(nnetFull_pred, testing_dummied_fac_Miss$Comp_30) # Confusion matrix
 
 
 
