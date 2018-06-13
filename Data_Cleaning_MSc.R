@@ -1073,8 +1073,11 @@ data_facMiss_dummied %<>% select(-c(`Margins.(Missing)`, `Extracaps.(Missing)`))
 # near zero variance in the training set.
 
 
-
+# Missing data remaining
 data_facMiss_dummied %>% sapply(function(x) sum(is.na(x))) %>% .[. > 0]
+# Filtering out remaining missing data
+data_facMiss_dummied <- na.omit(data_facMiss_dummied) # N cannot be imputed, and 3 missing values for Age were deemed safe
+# enough to eliminate
 
 
 
