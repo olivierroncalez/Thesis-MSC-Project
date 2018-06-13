@@ -768,9 +768,10 @@ data <- filter(data, !is.na(Comp_30))
 # Factor conversion
 ###########################################
 
-# Data converted to factors here... ### NOT DONE
-fac_names <- data %>%  select(-c(Age, N)) %>% names # Extract names of soon-to-be factor variables
-data %<>%mutate_at(fac_names, funs(factor(.))) # Update data by mutating to factor variables
+# Data converted to factors here
+fac_names <- data %>%  select(-c(Age, N)) %>% names # Extract names of soon-to-be factor variables.
+# Note: Domain knowledge guided this process here.
+data %<>% mutate_at(fac_names, funs(factor(.))) # Update data by mutating to factor variables
 
 
 # Factor names (verifying)
@@ -778,15 +779,13 @@ data %>% sapply(function(x) is.factor(x)) %>% .[. %in% TRUE] %>% names
 data %>% sapply(function(x) is.numeric(x)) %>% unname
 
 
-# New dataset which treats missing values as additional factors
-data_facMiss <- data %>% mutate_at(fac_names, funs(fct_explicit_na(.)))
-data_facMiss %>% lapply(function(x) levels(x)) 
-rm('fac_names')
-
-
 # Labelling class data
 data$Comp_30 <- factor(data$Comp_30, labels = c('Healthy', 'Comp'))
-data_facMiss$Comp_30 <- factor(data_facMiss$Comp_30, labels = c('Healthy', 'Comp'))
+
+
+# Moved new data set creation below.
+
+
 
 
 
@@ -810,14 +809,15 @@ rm('ranges', 'table_count', 'categorical_names')
 
 # Glimpsing at the data
 glimpse(data)
-head(data)
+head(data, n = 10)
+
 
 # Summary
 summary(data)
 
 
 ## Group by analyses
-data %>% group_by(Group) %>% summarise(n = n())
+data %>% group_by(Group) %>% tally
 
 
 
@@ -845,6 +845,10 @@ names(data[,sapply(data, is.character)]) # Names of string columns
 # Numeric
 sum(sapply(data, is.numeric)) # Number of integer columns
 names(data[,sapply(data, is.numeric)]) # Names of integer columns
+
+# Factors
+sum(sapply(data, is.factor))
+names(data[, sapply(data, is.factor)])
 
 
 
@@ -892,7 +896,7 @@ proportion_missing_f <- data %>%
 
 # === If group does not have any values for a variable, 1, else, 0
 proportion_missing_f <- sapply(proportion_missing_f, function(x) ifelse(x == 1, 1, 0)) %>% 
-  as.data.frame
+     as.data.frame
 # === Selecting only variables with at least one '1'
 proportion_missing_f <- select_if(proportion_missing_f, function(x) sum(x) > 0)
 # === Removing the variable group
@@ -914,6 +918,19 @@ setdiff(group_missing_var_names_f[[4]], group_missing_var_names_f[[5]])
 
 
 
+### Patterns of missing data
+
+library(VIM)
+aggr_plot <- aggr(data, 
+                  col = c('navyblue','red'), 
+                  numbers = TRUE, 
+                  sortVars = TRUE, 
+                  labels = names(data), 
+                  cex.axis = .7, 
+                  gap = 3, 
+                  ylab = c("Histogram of missing data","Pattern"))
+
+
 
 ###########################################
 # Table Count 
@@ -931,8 +948,8 @@ setdiff(group_missing_var_names_f[[4]], group_missing_var_names_f[[5]])
 ## Table count DataFrame
 
 # === Note: need to verify these variables are indeed categorical & whether ordinal or nominal.
-table_count_f <- data %>% select_if(is.numeric) %>% # Selects numeric variables
-  sapply(function(x) if(length(table(x)) < 15) table(x)) # Applies table if length categories < 15
+table_count_f <- data %>% select_if(is.factor) %>% # Selects factor variables
+  sapply(function(x) if(length(table(x)) < 16) table(x)) # Applies table if length categories < 16
 
 
 # === Filters null values and transforms the list into dataframes
@@ -975,12 +992,98 @@ ranges_f <- data %>%
 
 
 
-###########################################
-# Visualizations
-###########################################
+# Visualizations --------------------------------------------------------------------
+
 
 
 # To complete... 
+
+
+
+
+
+# Datasets --------------------------------------------------------------------------
+
+#
+#
+# In addition to the raw data, several modified copies of the data have been generated here in order
+# to fit in a format acceptable for specific ML algorithms, as well as to determine the differences in 
+# effects of different formats.
+#
+#
+
+
+
+
+### Data with missing categorical data as factor level (MISSING DATA FACTOR LEVEL)
+
+
+# New dataset which treats missing values as additional factors (for factor variables)
+data_facMiss <- data %>% mutate_at(fac_names, funs(fct_explicit_na(.)))
+
+
+# Verifying class and levels
+data_facMiss %>% sapply(class) %>% unname # class
+data_facMiss %>% lapply(function(x) levels(x)) # levels
+data_facMiss %>% sapply(function(x) sum(is.na(x))) %>% .[. > 0] # Columns with remaining missing values
+
+
+
+
+
+
+### Dataset with listwise deletion of missing data (LISTWISE DELETION)
+
+
+# Data with listwise deletion of missing values
+data_noMiss <- na.omit(data) # Not desirable
+
+
+# Percent of data with at least one missing value
+sum(complete.cases(data))/nrow(data) # 57% of data have no missing values (43% were thus eliminated)
+
+
+
+
+
+
+
+# Dummy Variables -------------------------------------------------------------------
+
+
+### Dummy variables for encoded missing data in factors 
+
+
+# Create new data & dummy object 
+data_facMiss_dummied <- data_facMiss %>% select(-Group) # New data (excluding group)
+dummy_obj <- dummyVars(~. -Comp_30, data_facMiss_dummied, fullRank = TRUE) # Create dummy variable encoding object
+
+
+# Replace dataset with new dummy variables
+data_facMiss_dummied <- as.data.frame(predict(dummy_obj, newdata = data_facMiss_dummied)) %>% 
+     bind_cols(., data_facMiss_dummied[ncol(data_facMiss_dummied)])
+
+
+# Detect and eliminate (near) zero variance predictors
+nearZeroVar(data_facMiss_dummied, saveMetrics = TRUE) %>% rownames_to_column(var = 'Variable') %>% 
+     filter(nzv == TRUE) # Printout of variables 
+nzv <- nearZeroVar(data_facMiss_dummied, saveMetrics = FALSE) # Retrieve indices of near zero var predictors
+data_facMiss_dummied %<>% select(-nzv) # Eliminate variables with near zero var
+data_facMiss_dummied %<>% select(-c(`Margins.(Missing)`, `Extracaps.(Missing)`)) # Eliminated two additional variables which proved to be
+# near zero variance in the training set.
+
+
+# Missing data remaining
+data_facMiss_dummied %>% sapply(function(x) sum(is.na(x))) %>% .[. > 0]
+# Filtering out remaining missing data
+data_facMiss_dummied <- na.omit(data_facMiss_dummied) # N cannot be imputed, and 3 missing values for Age were deemed safe
+# enough to eliminate
+
+
+
+
+
+
 
 
 
@@ -991,15 +1094,14 @@ ranges_f <- data %>%
 ###########################################
 
 # Removing extraneous environment objects
-rm(list = setdiff(ls(), c('data', 'data_facMiss')))
-
-
-# Data with listwise deletion of missing values
-data_noMiss <- na.omit(data) # Not desirable
-# Percent of data with at least one missing value
-sum(complete.cases(data))/nrow(data) # 57% of data have no missing values
-
-
+rm(list = setdiff(ls(), c('data', 'data_facMiss', 'data_noMiss', 'data_facMiss_dummied')))
 cat("\014") # Clear console
+dev.off() # Clear plots
+
+
+
+
+
+
 
 
