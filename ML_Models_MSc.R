@@ -4,6 +4,7 @@ source('Data_Cleaning_MSc.R')
 
 # Loading required packages
 library(caret)
+library(caretEnsemble)
 library(doParallel) # Parallel computations
 
 
@@ -20,6 +21,7 @@ data <- as.data.frame(data)
 data_facMiss <- as.data.frame(data_facMiss)
 data_noMiss <- as.data.frame(data_noMiss)
 data_facMiss_dummied <- as.data.frame(data_facMiss_dummied)
+data_facMiss_dummied_cat <- as.data.frame(data_facMiss_dummied_cat)
 
 
 
@@ -223,8 +225,8 @@ rfFull <- train(training_dummied_fac_Miss_cat[, -ncol(training_dummied_fac_Miss_
 rfFull # Model info
 
 
-rfFull_pred <- predict(rfFull, training_dummied_fac_Miss_cat) # Predicting test set
-confusionMatrix(rfFull_pred, training_dummied_fac_Miss_cat$Comp_30) # Confusion matrix
+rfFull_pred <- predict(rfFull, testing_dummied_fac_Miss_cat) # Predicting test set
+confusionMatrix(rfFull_pred, testing_dummied_fac_Miss_cat$Comp_30) # Confusion matrix
 
 
 
@@ -309,7 +311,8 @@ nnetFull <- train(training_dummied_fac_Miss[ , -ncol(training_dummied_fac_Miss)]
                   training_dummied_fac_Miss$Comp_30,
                   method = 'nnet',
                   tuneLength = 4,
-                  trace = FALSE, lineout = TRUE)
+                  trace = FALSE, lineout = TRUE,
+                  trControl = trCtrl)
 nnetFull # Model info
 
 
@@ -322,16 +325,17 @@ confusionMatrix(nnetFull_pred, testing_dummied_fac_Miss$Comp_30) # Confusion mat
 
 # Model Comparisons  ----------------------------------------------------------------
 
-model_list <- list(logisticFull,
-                   rfFull,
-                   svmFull,
-                   nbFull,
-                   knnFull,
-                   nnetFull)
 
+model_list <- list('Logistic Reg' = logisticFull,
+                   'Random Forest' = rfFull,
+                   'SVM' = svmFull,
+                   'N. Bayes' = nbFull,
+                   'kNN' = knnFull,
+                   'Neural Net' = nnetFull)
 
+resample_ <- resamples(model_list) # Currently not working...
 
-
+summary(resample_)
 
 
 
