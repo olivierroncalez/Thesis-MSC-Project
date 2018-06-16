@@ -10,6 +10,7 @@ library(data.table)
 library(lubridate)
 library(outliers)
 library(magrittr)
+library(caret)
 
 
 
@@ -1115,7 +1116,8 @@ data_facMiss_dummied_cat %>% sapply(is.numeric) %>% .[. %in% TRUE] %>% names
 ###########################################
 
 # Removing extraneous environment objects
-rm(list = setdiff(ls(), c('data', 'data_facMiss', 'data_noMiss', 'data_facMiss_dummied')))
+rm(list = setdiff(ls(), c('data', 'data_facMiss', 'data_noMiss', 'data_facMiss_dummied',
+                          'data_facMiss_dummied_cat')))
 cat("\014") # Clear console
 dev.off() # Clear plots
 
