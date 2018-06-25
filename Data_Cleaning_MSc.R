@@ -1035,6 +1035,11 @@ data_facMiss$Site <- fct_other(data_facMiss$Site, keep = c(2, 13, 7, 3)) # Keepi
 fct_count(data_facMiss$Site) # Verifying new factor levels
 
 
+# Missing data remaining
+data_facMiss %>% sapply(function(x) sum(is.na(x))) %>% .[. > 0]
+# Filtering out remaining missing data
+data_facMiss <- na.omit(data_facMiss) # N cannot be imputed, and 3 missing values for Age were deemed safe
+# enough to eliminate
 
 
 
@@ -1077,15 +1082,7 @@ nearZeroVar(data_facMiss_dummied, saveMetrics = TRUE) %>% rownames_to_column(var
      filter(nzv == TRUE) # Printout of variables 
 nzv <- nearZeroVar(data_facMiss_dummied, saveMetrics = FALSE) # Retrieve indices of near zero var predictors
 data_facMiss_dummied %<>% select(-nzv) # Eliminate variables with near zero var
-data_facMiss_dummied %<>% select(-c(`Margins.(Missing)`, `Extracaps.(Missing)`)) # Eliminated two additional variables which proved to be
-# near zero variance in the training set.
 
-
-# Missing data remaining
-data_facMiss_dummied %>% sapply(function(x) sum(is.na(x))) %>% .[. > 0]
-# Filtering out remaining missing data
-data_facMiss_dummied <- na.omit(data_facMiss_dummied) # N cannot be imputed, and 3 missing values for Age were deemed safe
-# enough to eliminate
 
 
 
