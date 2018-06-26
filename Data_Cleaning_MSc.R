@@ -2,15 +2,15 @@
 # This script is automatically run from "ML_Models_MSc.R" in order to keep the data 
 # cleaning and model building separate.  
 
-library(tidyverse)
+library(magrittr)
 library(clipr)
 library(devtools)
 library(DataExplorer)
 library(data.table)
 library(lubridate)
 library(outliers)
-library(magrittr)
 library(caret)
+library(tidyverse)
 
 
 
