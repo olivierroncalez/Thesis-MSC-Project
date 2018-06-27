@@ -219,7 +219,8 @@ confusionMatrix(logisticFull_pred,
 
 # ROC Training Set
 logisticFull_ROC <- roc(fct_relevel(testing_dummied_fac_Miss$Comp_30, 'Comp'), 
-    predict(logisticFull, testing_dummied_fac_Miss, type = 'prob')[,1])
+    predict(logisticFull, testing_dummied_fac_Miss, type = 'prob')[,1],
+    ci = TRUE)
 # ROC plot
 plot.roc(logisticFull_ROC, legacy.axes = TRUE, print.thres = TRUE) # Plotting
 # AUC
@@ -258,7 +259,8 @@ confusionMatrix(LogAICFull_pred, testing_dummied_fac_Miss$Comp_30) # Confusion m
 
 # ROC Training Set
 LogAICFull_ROC <- roc(fct_relevel(testing_dummied_fac_Miss$Comp_30, 'Comp'), 
-                        predict(LogAICFull, testing_dummied_fac_Miss, type = 'prob')[,1])
+                        predict(LogAICFull, testing_dummied_fac_Miss, type = 'prob')[,1],
+                      ci = TRUE)
 # ROC plot
 plot.roc(LogAICFull_ROC, legacy.axes = TRUE, print.thres = TRUE) # Plotting
 # AUC
@@ -308,7 +310,8 @@ confusionMatrix(rfFull_pred, testing_dummied_fac_Miss_cat$Comp_30) # Confusion m
 
 # ROC Training Set
 rfFull_ROC <- roc(testing_dummied_fac_Miss_cat$Comp_30, 
-                        predict(rfFull, testing_dummied_fac_Miss_cat, type = 'prob')[,1])
+                        predict(rfFull, testing_dummied_fac_Miss_cat, type = 'prob')[,1],
+                  ci = TRUE)
 
 # ROC plot
 plot.roc(rfFull_ROC, legacy.axes = TRUE, print.thres = TRUE) # Plotting
@@ -353,7 +356,8 @@ confusionMatrix(dtFull_pred, testing_dummied_fac_Miss_cat$Comp_30) # Confusion m
 
 # ROC Training Set
 dtFull_ROC <- roc(testing_dummied_fac_Miss_cat$Comp_30, 
-                  predict(dtFull, testing_dummied_fac_Miss_cat, type = 'prob')[,1])
+                  predict(dtFull, testing_dummied_fac_Miss_cat, type = 'prob')[,1],
+                  ci = TRUE)
 
 # ROC plot
 plot.roc(dtFull_ROC, legacy.axes = TRUE, print.thres = TRUE) # Plotting
@@ -451,7 +455,8 @@ confusionMatrix(nbFull_pred, testing_dummied_fac_Miss_cat$Comp_30) # Confusion m
 
 # ROC Training Set
 nbFull_ROC <- roc(testing_dummied_fac_Miss_cat$Comp_30, 
-                  predict(nbFull, testing_dummied_fac_Miss_cat, type = 'prob')[,1])
+                  predict(nbFull, testing_dummied_fac_Miss_cat, type = 'prob')[,1],
+                  ci = TRUE)
 
 # ROC plot
 plot.roc(nbFull_ROC, legacy.axes = TRUE, print.thres = TRUE) # Plotting
@@ -491,7 +496,8 @@ confusionMatrix(knnFull_pred, testing_dummied_fac_Miss$Comp_30) # Confusion matr
 
 # ROC Test Set
 knnFull_ROC <- roc(testing_dummied_fac_Miss$Comp_30, 
-                  predict(knnFull, testing_dummied_fac_Miss, type = 'prob')[,1])
+                  predict(knnFull, testing_dummied_fac_Miss, type = 'prob')[,1],
+                  ci = TRUE)
 
 # ROC plot
 plot.roc(knnFull_ROC, legacy.axes = TRUE, print.thres = TRUE) # Plotting
@@ -596,7 +602,6 @@ auc(avNNetFull_ROC) # AUC
 # Resampling model list
 model_list <- list('Logistic Reg' = logisticFull,
                    'Random Forest' = rfFull,
-                   'SVM' = svmFull,
                    'N. Bayes' = nbFull,
                    'kNN' = knnFull,
                    'Neural Net' = nnetFull)
@@ -638,8 +643,26 @@ knnFull_pred
 nnetFull_pred
 
 
+# Cohen's Kappa
+model_pred_full <- bind_cols(logFull = logisticFull_pred, 
+          rfFull = rfFull_pred,
+          nbFull = nbFull_pred,
+          knnFull = knnFull_pred,
+          nnetFull = nnetFull_pred)
+psych::cohen.kappa(model_pred_full, alpha = 0.05)
+
+
 # Univariate inferential statistics (conducted on ROC)
-roc.test(logisticFull_ROC, rfFull_ROC)
+roc.test(logisticFull_ROC, rfFull_ROC) 
+roc.test(logisticFull_ROC, nbFull_ROC)
+roc.test(logisticFull_ROC, knnFull_ROC)
+roc.test(logisticFull_ROC, nnetFull_ROC)
+roc.test(rfFull_ROC, nbFull_ROC)
+roc.test(rfFull_ROC, knnFull_ROC)
+roc.test(rfFull_ROC, nnetFull_ROC)
+roc.test(nbFull_ROC, knnFull_ROC)
+roc.test(nbFull_ROC, nnetFull_ROC)
+roc.test(knnFull_ROC, nnetFull_ROC)
 
 
 # AUC
@@ -651,7 +674,7 @@ auc(nnetFull_ROC)
 
 
 # AUC CI
-ci.auc(logisticFull_ROC) 
+ci.auc(logisticFull_ROC)
 ci.auc(rfFull_ROC)
 ci.auc(nbFull_ROC)
 ci.auc(knnFull_ROC)
@@ -672,18 +695,12 @@ ci.auc(nnetFull_ROC)
 ### RESAMPLING
 
 
-# Resampling results (inferential pairwise comparisons)
-dotplot(diff.resamples.Full)
-densityplot(diff.resamples.Full,
-            metric = "ROC",
-            auto.key = TRUE,
-            pch = "|")
-
-
 # Resampling results (no comparisons)
 dotplot(resample_list , metric = 'ROC', axes = TRUE)
-xyplot(resample_list , metric = 'ROC', axes = TRUE)
 
+
+# Resampling results (inferential pairwise comparisons)
+dotplot(diff.resamples.Full)
 
 
 
