@@ -2,14 +2,15 @@
 # This script is automatically run from "ML_Models_MSc.R" in order to keep the data 
 # cleaning and model building separate.  
 
-library(tidyverse)
+library(magrittr)
 library(clipr)
 library(devtools)
 library(DataExplorer)
 library(data.table)
 library(lubridate)
 library(outliers)
-library(magrittr)
+library(caret)
+library(tidyverse)
 
 
 
@@ -1014,8 +1015,9 @@ ranges_f <- data %>%
 
 
 
-
+######################################################################################
 ### Data with missing categorical data as factor level (MISSING DATA FACTOR LEVEL)
+######################################################################################
 
 
 # New dataset which treats missing values as additional factors (for factor variables)
@@ -1028,11 +1030,22 @@ data_facMiss %>% lapply(function(x) levels(x)) # levels
 data_facMiss %>% sapply(function(x) sum(is.na(x))) %>% .[. > 0] # Columns with remaining missing values
 
 
+# Combining several levels of Site into one group
+data_facMiss$Site <- fct_other(data_facMiss$Site, keep = c(2, 13, 7, 3)) # Keeping only these factor levels and lumping the rest
+fct_count(data_facMiss$Site) # Verifying new factor levels
+
+
+# Missing data remaining
+data_facMiss %>% sapply(function(x) sum(is.na(x))) %>% .[. > 0]
+# Filtering out remaining missing data
+data_facMiss <- na.omit(data_facMiss) # N cannot be imputed, and 3 missing values for Age were deemed safe
+# enough to eliminate
 
 
 
-
+######################################################################################
 ### Dataset with listwise deletion of missing data (LISTWISE DELETION)
+######################################################################################
 
 
 # Data with listwise deletion of missing values
@@ -1059,7 +1072,7 @@ data_facMiss_dummied <- data_facMiss %>% select(-Group) # New data (excluding gr
 dummy_obj <- dummyVars(~. -Comp_30, data_facMiss_dummied, fullRank = TRUE) # Create dummy variable encoding object
 
 
-# Replace dataset with new dummy variables
+# Replace dataset with new dummy variables (will convert into integers)
 data_facMiss_dummied <- as.data.frame(predict(dummy_obj, newdata = data_facMiss_dummied)) %>% 
      bind_cols(., data_facMiss_dummied[ncol(data_facMiss_dummied)])
 
@@ -1069,19 +1082,25 @@ nearZeroVar(data_facMiss_dummied, saveMetrics = TRUE) %>% rownames_to_column(var
      filter(nzv == TRUE) # Printout of variables 
 nzv <- nearZeroVar(data_facMiss_dummied, saveMetrics = FALSE) # Retrieve indices of near zero var predictors
 data_facMiss_dummied %<>% select(-nzv) # Eliminate variables with near zero var
-data_facMiss_dummied %<>% select(-c(`Margins.(Missing)`, `Extracaps.(Missing)`)) # Eliminated two additional variables which proved to be
-# near zero variance in the training set.
-
-
-# Missing data remaining
-data_facMiss_dummied %>% sapply(function(x) sum(is.na(x))) %>% .[. > 0]
-# Filtering out remaining missing data
-data_facMiss_dummied <- na.omit(data_facMiss_dummied) # N cannot be imputed, and 3 missing values for Age were deemed safe
-# enough to eliminate
 
 
 
 
+
+
+### Recoding into factors for factor-capable models (tree-based and Naive Bayes)
+
+
+# Tree-based methods and Naive Bayes can take in factor data, but the other models might work best if
+# the data is not re-coded back into factor predictors.
+
+f_names <- data_facMiss_dummied %>% select(-c('Age', 'N')) %>% names
+
+# Re-converting to factors
+data_facMiss_dummied_cat <- data_facMiss_dummied %>% mutate_at(f_names, funs(factor(.)))
+# Checking factor conversion
+data_facMiss_dummied_cat %>% sapply(is.factor) %>% .[. %in% TRUE] %>% names
+data_facMiss_dummied_cat %>% sapply(is.numeric) %>% .[. %in% TRUE] %>% names
 
 
 
@@ -1094,9 +1113,39 @@ data_facMiss_dummied <- na.omit(data_facMiss_dummied) # N cannot be imputed, and
 ###########################################
 
 # Removing extraneous environment objects
-rm(list = setdiff(ls(), c('data', 'data_facMiss', 'data_noMiss', 'data_facMiss_dummied')))
+rm(list = setdiff(ls(), c('data', 'data_facMiss', 'data_noMiss', 'data_facMiss_dummied',
+                          'data_facMiss_dummied_cat')))
 cat("\014") # Clear console
 dev.off() # Clear plots
+
+
+
+
+# Test Code -------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+# Added breapoint before test section to prevent script from running test code automatically
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
