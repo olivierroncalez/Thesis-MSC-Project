@@ -20,7 +20,7 @@ registerDoSEQ() # Unregister doParallel
 
 # Converting back to dataframe from tibble (caret is not tibble friendly)
 # data <- as.data.frame(data)
-data_facMiss <- as.data.frame(data_facMiss)
+data_facMiss <- as.data.frame(data_facMiss) # Grouped predictors
 # data_noMiss <- as.data.frame(data_noMiss)
 data_facMiss_dummied <- as.data.frame(data_facMiss_dummied)
 data_facMiss_dummied_cat <- as.data.frame(data_facMiss_dummied_cat)
@@ -125,8 +125,8 @@ predVars <- names(select(training_facMiss, -Comp_30)) # Predictor namesfor group
 trCtrl <- trainControl(method = "repeatedcv", # Defaults to 10
                      repeats = 3,
                      summaryFunction = fiveStats,
-                     classProbs = TRUE,
                      index = dummy_index, # IMPORTANT! Uses the same index for all models
+                     classProbs = TRUE,
                      allowParallel = TRUE,
                      verboseIter = TRUE,
                      savePredictions = TRUE,
@@ -135,43 +135,6 @@ trCtrl <- trainControl(method = "repeatedcv", # Defaults to 10
 
 
 
-
-########################################################################
-### 
-###                 Recursive Feature Elimination
-### 
-########################################################################
-
-
-# Control object for implementing recursive feature elimination
-rfCtrl <- rfeControl(method = "repeatedcv",
-                         repeats = 3,
-                         summaryFunction = fiveStats,
-                         classProbs = TRUE,
-                         index = dummy_index, # IMPORTANT! 
-                         allowParallel = TRUE,
-                         verboseIter = TRUE,
-                     returnResamp = 'final',
-                     saveDetails = TRUE)
-
-
-
-
-
-
-########################################################################
-### 
-###                      Selection by Filter
-### 
-########################################################################
-
-
-# Control object for implementing (needs "functions" argument)
-sbfCtrl <- sbfControl(method = "repeatedcv",
-                      repeats = 5,
-                      verbose = TRUE,
-                      index = index_noMiss # IMPORTANT! 
-                      )
 
 
 
@@ -199,8 +162,9 @@ logisticFull <- train(training_dummied_fac_Miss[, -ncol(training_dummied_fac_Mis
                       family = 'binomial',
                       preProcess = c('center', 'scale'),
                       trace = 0, # No verbose printout
-                      trControl = trCtrl,
-                      metric = 'ROC') # Maximize ROC metric
+                      trControl = trCtrl) 
+
+
 
 # Summaries
 summary(logisticFull) # GLM model info
@@ -230,41 +194,52 @@ auc(logisticFull_ROC)
 
 
 
-
-
 ########################################################################
-### AIC Log
+### Sampling
 
+
+### UP SAMPLING
+trCtrl$sampling <- 'up'
 
 set.seed(337)
-LogAICFull <- train(training_dummied_fac_Miss[, -ncol(training_dummied_fac_Miss)], # Last column is target
-                      training_dummied_fac_Miss$Comp_30,
-                      method = 'glmStepAIC',
+logisticFull_up <- train(training_dummied_fac_Miss[, -ncol(training_dummied_fac_Miss)], 
+                      fct_relevel(training_dummied_fac_Miss$Comp_30, 'Comp'), 
+                      method = 'glm',
                       family = 'binomial',
                       preProcess = c('center', 'scale'),
-                    metric = 'ROC',
-                      trace = 0, # No verbose printout
-                      trControl = trCtrl)
-
-# Summaries
-summary(LogAICFull) # GLM model info
-LogAICFull # Caret model info
-LogAICFull$finalModel
+                      trace = 0, 
+                      trControl = trCtrl) 
 
 
-# Predictions Training Set
-LogAICFull_pred <- predict(LogAICFull, testing_dummied_fac_Miss) # Predicting test set
-confusionMatrix(LogAICFull_pred, testing_dummied_fac_Miss$Comp_30) # Confusion matrix
+### DOWN SAMPLING
+trCtrl$sampling <- 'down'
+
+set.seed(337)
+logisticFull_down <- train(training_dummied_fac_Miss[, -ncol(training_dummied_fac_Miss)], 
+                         fct_relevel(training_dummied_fac_Miss$Comp_30, 'Comp'), 
+                         method = 'glm',
+                         family = 'binomial',
+                         preProcess = c('center', 'scale'),
+                         trace = 0, 
+                         trControl = trCtrl) 
 
 
-# ROC Training Set
-LogAICFull_ROC <- roc(fct_relevel(testing_dummied_fac_Miss$Comp_30, 'Comp'), 
-                        predict(LogAICFull, testing_dummied_fac_Miss, type = 'prob')[,1],
-                      ci = TRUE)
-# ROC plot
-plot.roc(LogAICFull_ROC, legacy.axes = TRUE, print.thres = TRUE) # Plotting
-# AUC
-auc(LogAICFull_ROC)
+### SMOTE SAMPLING
+trCtrl$sampling <- 'smote'
+
+set.seed(337)
+logisticFull_smote <- train(training_dummied_fac_Miss[, -ncol(training_dummied_fac_Miss)], 
+                           fct_relevel(training_dummied_fac_Miss$Comp_30, 'Comp'), 
+                           method = 'glm',
+                           family = 'binomial',
+                           preProcess = c('center', 'scale'),
+                           trace = 0, 
+                           trControl = trCtrl) 
+
+# Turn off sampling
+trCtrl$sampling <- NULL
+
+
 
 
 
@@ -323,101 +298,57 @@ auc(rfFull_ROC)
 
 
 
-
 ########################################################################
-### 
-###                           Decision Tree
-### 
-########################################################################
+### Sampling
 
-# WARNING : The dataset used here is the exact same as those used in other models EXCEPT 
-# for the fact that factor variables have been recoded as such. All indices and order are
-# retained. The append of '_cat' symbolizes this.
+
+### UP SAMPLING
+trCtrl$sampling <- 'up'
 
 
 set.seed(337)
-dtFull <- train(training_dummied_fac_Miss_cat[, -ncol(training_dummied_fac_Miss_cat)],
+rfFull_up <- train(training_dummied_fac_Miss_cat[, -ncol(training_dummied_fac_Miss_cat)],
                 training_dummied_fac_Miss_cat$Comp_30,
-                method = "rpart",
-                metric = "ROC",
-                trControl = trCtrl,
-                tuneLength = 6)
-
-# Summaries
-dtFull # Model info
-dtFull$finalModel # Final model
-
-
-
-# Predictions Training Set
-dtFull_pred <- predict(dtFull, testing_dummied_fac_Miss_cat) # Predicting test set
-confusionMatrix(dtFull_pred, testing_dummied_fac_Miss_cat$Comp_30) # Confusion matrix
-
-
-# ROC Training Set
-dtFull_ROC <- roc(testing_dummied_fac_Miss_cat$Comp_30, 
-                  predict(dtFull, testing_dummied_fac_Miss_cat, type = 'prob')[,1],
-                  ci = TRUE)
-
-# ROC plot
-plot.roc(dtFull_ROC, legacy.axes = TRUE, print.thres = TRUE) # Plotting
-# AUC
-auc(dtFull_ROC) 
-
-
-
-
-
-
-
-########################################################################
-### 
-###                                ADABoost
-### 
-########################################################################
-
-
-# WARNING : The dataset used here is the exact same as those used in other models EXCEPT 
-# for the fact that factor variables have been recoded as such. All indices and order are
-# retained. The append of '_cat' symbolizes this.
-
-
-set.seed(337)
-adaBoostFull <- train(training_dummied_fac_Miss_cat[, -ncol(training_dummied_fac_Miss_cat)],
-                training_dummied_fac_Miss_cat$Comp_30,
-                method = "adaboost",
+                method = "rf",
                 metric = "ROC",
                 preProc = c("center", "scale"),
-                tuneLength = 6,
+                tuneGrid = rf_grid,
+                ntree = 1000,
                 trControl = trCtrl)
 
 
+### DOWN SAMPLING
+trCtrl$sampling <- 'down'
 
 
+set.seed(337)
+rfFull_down <- train(training_dummied_fac_Miss_cat[, -ncol(training_dummied_fac_Miss_cat)],
+                   training_dummied_fac_Miss_cat$Comp_30,
+                   method = "rf",
+                   metric = "ROC",
+                   preProc = c("center", "scale"),
+                   tuneGrid = rf_grid,
+                   ntree = 1000,
+                   trControl = trCtrl)
 
 
+### SMOTE SAMPLING
+trCtrl$sampling <- 'smote'
 
 
-########################################################################
-### 
-###                      SVM (currently not working)
-### 
-########################################################################
+set.seed(337)
+rfFull_smote <- train(training_dummied_fac_Miss_cat[, -ncol(training_dummied_fac_Miss_cat)],
+                     training_dummied_fac_Miss_cat$Comp_30,
+                     method = "rf",
+                     metric = "ROC",
+                     preProc = c("center", "scale"),
+                     tuneGrid = rf_grid,
+                     ntree = 1000,
+                     trControl = trCtrl)
 
+# Turn off sampling
+trCtrl$sampling <- NULL
 
-# set.seed(337)
-# svmFull <- train(training_dummied_fac_Miss[, -ncol(training_dummied_fac_Miss)],
-#                  training_dummied_fac_Miss$Comp_30,
-#                  method = "svmRadial",
-#                  metric = "ROC",
-#                  tuneLength = 6,
-#                  preProc = c("center", "scale"),
-#                  trControl = trCtrl)
-# svmFull # Model info
-# svmFull$finalmodel # Final model
-# 
-# 
-# predict(svmFull, testing_dummied_fac_Miss)
 
 
 
@@ -463,6 +394,55 @@ plot.roc(nbFull_ROC, legacy.axes = TRUE, print.thres = TRUE) # Plotting
 # AUC
 auc(nbFull_ROC) 
 
+
+
+
+
+########################################################################
+### Sampling
+
+
+### UP SAMPLING
+trCtrl$sampling <- 'up'
+
+
+set.seed(337)
+nbFull_up <- train(training_dummied_fac_Miss_cat[, -ncol(training_dummied_fac_Miss_cat)],
+                training_dummied_fac_Miss_cat$Comp_30,
+                method = "nb",
+                metric = "ROC",
+                preProc = c("center", "scale"),
+                trControl = trCtrl)
+
+
+### DOWN SAMPLING
+trCtrl$sampling <- 'down'
+
+
+set.seed(337)
+nbFull_down <- train(training_dummied_fac_Miss_cat[, -ncol(training_dummied_fac_Miss_cat)],
+                   training_dummied_fac_Miss_cat$Comp_30,
+                   method = "nb",
+                   metric = "ROC",
+                   preProc = c("center", "scale"),
+                   trControl = trCtrl)
+
+
+### SMOTE SAMPLING
+trCtrl$sampling <- 'smote'
+
+
+set.seed(337)
+nbFull_smote <- train(training_dummied_fac_Miss_cat[, -ncol(training_dummied_fac_Miss_cat)],
+                   training_dummied_fac_Miss_cat$Comp_30,
+                   method = "nb",
+                   metric = "ROC",
+                   preProc = c("center", "scale"),
+                   trControl = trCtrl)
+
+
+# Turn off sampling
+trCtrl$sampling <- NULL
 
 
 
@@ -551,39 +531,56 @@ auc(nnetFull_ROC) # AUC
 
 
 
-
 ########################################################################
-###  Average Neural Net
+### Sampling
+
+
+### UP SAMPLING
+trCtrl$sampling <- 'up'
+
 
 set.seed(337)
-avNNetFull <- train(training_dummied_fac_Miss[ , -ncol(training_dummied_fac_Miss)],
+nnetFull_up <- train(training_dummied_fac_Miss[ , -ncol(training_dummied_fac_Miss)],
                   training_dummied_fac_Miss$Comp_30,
-                  method = 'avNNet',
-                  preProc = c("center", "scale"),
+                  method = 'nnet',
                   tuneLength = 4,
-                  repeats = 10,
+                  preProc = c("center", "scale"),
                   trace = FALSE, lineout = TRUE,
                   metric = 'ROC',
                   trControl = trCtrl)
 
-# Summaries
-avNNetFull # Model info
-avNNetFull$finalModel
+
+### DOWN SAMPLING
+trCtrl$sampling <- 'down'
 
 
-# Test set predictions
-avNNetFull_pred <- predict(avNNetFull, testing_dummied_fac_Miss) # Predicting test set
-confusionMatrix(avNNetFull_pred, testing_dummied_fac_Miss$Comp_30) # Confusion matrix
+set.seed(337)
+nnetFull_down <- train(training_dummied_fac_Miss[ , -ncol(training_dummied_fac_Miss)],
+                     training_dummied_fac_Miss$Comp_30,
+                     method = 'nnet',
+                     tuneLength = 4,
+                     preProc = c("center", "scale"),
+                     trace = FALSE, lineout = TRUE,
+                     metric = 'ROC',
+                     trControl = trCtrl)
 
 
-# ROC Training Set
-avNNetFull_ROC <- roc(testing_dummied_fac_Miss$Comp_30, 
-                    predict(avNNetFull, testing_dummied_fac_Miss, type = 'prob')[,1])
-# ROC plot
-plot.roc(avNNetFull_ROC, legacy.axes = TRUE, print.thres = TRUE) # Plotting
-# AUC
-auc(avNNetFull_ROC) # AUC
+### SMOTE SAMPLING
+trCtrl$sampling <- 'smote'
 
+
+set.seed(337)
+nnetFull_smote <- train(training_dummied_fac_Miss[ , -ncol(training_dummied_fac_Miss)],
+                       training_dummied_fac_Miss$Comp_30,
+                       method = 'nnet',
+                       tuneLength = 4,
+                       preProc = c("center", "scale"),
+                       trace = FALSE, lineout = TRUE,
+                       metric = 'ROC',
+                       trControl = trCtrl)
+
+
+trCtrl$sampling <- NULL
 
 
 
@@ -702,7 +699,7 @@ dotplot(resample_list , metric = 'ROC', axes = TRUE)
 # Resampling results (inferential pairwise comparisons)
 dotplot(diff.resamples.Full)
 
-
+plot(knnFull)
 
 
 ########################################################################
@@ -716,4 +713,30 @@ plot(knnFull_ROC, legacy.axes = TRUE, print.thres = TRUE, add = TRUE, col = 4)
 plot(nnetFull_ROC, legacy.axes = TRUE, print.thres = TRUE, add = TRUE, col = 5)
 # Important to note that these models were trained on the full training data and are thus
 # different to those in the resampled results
+
+
+
+
+
+
+
+
+
+
+
+########################################################################################################
+########################################################################################################
+
+#                                        Feature Selection
+
+########################################################################################################
+########################################################################################################
+
+
+
+########################################################################
+### 
+###                      Embedded
+### 
+########################################################################
 
