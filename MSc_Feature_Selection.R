@@ -62,7 +62,7 @@ uni_pscore_filter <- function(score, x, y) {
 
 
 ##############################################
-# Relief Filter 
+# Relief Filter (in progress)
 
 CORElearn::attrEval(Comp_30 ~., 
                     data = training_dummied_fac_Miss,
@@ -79,6 +79,8 @@ CORElearn::attrEval(Comp_30 ~.,
 #                   Control Objects
 #
 ##############################################
+
+
 # Five stats summary
 fiveStats <- function(...) c(twoClassSummary(...), defaultSummary(...))
 
@@ -93,34 +95,32 @@ sbfCtrl <- sbfControl(method = "repeatedcv",
                       returnResamp = 'final')
 
 
-
 # RFE Control (must be the same as previous train control for fair comparison)
 rfeCtrl <- rfeControl(method = "repeatedcv", 
                    repeats = 3,
-                   index = index,
+                   index = dummy_index,
                    saveDetails = TRUE,
                    returnResamp = "final",
                    allowParallel = TRUE,
                    verbose = TRUE)
 
 
-
-
-
 # Train control (if tuning is needed, simple 5-fold CV) - Don't forget to include ROC metric
 trCtrl <-  trainControl(method = "cv",
                         classProbs = TRUE, # For maximizing ROC curve
                         verboseIter = TRUE,
-                        allowParallel = TRUE)
+                        allowParallel = FALSE)
+
 
 
 
 
 ##############################################
 #
-#                   CaretSBF
+#               CaretSBF Objects
 #
 ##############################################
+
 
 # Decision Tree Embedded
 
@@ -459,7 +459,7 @@ log_RFE <- rfe(training_dummied_fac_Miss[, -ncol(training_dummied_fac_Miss)],
                metric = 'ROC',
                preProcess = c('center', 'scale'),
                rfeControl = rfeCtrl)
-
+log_RFE
 
 
 
@@ -485,6 +485,7 @@ rf_RFE <- rfe(training_dummied_fac_Miss_cat[, -ncol(training_dummied_fac_Miss_ca
                   preProc = c("center", "scale"),
                   ntree = 1000,
                   sizes = varSeq)
+rf_RFE
 rf_RFE$fit
 
 
@@ -537,7 +538,7 @@ knn_RFE <- rfe(training_dummied_fac_Miss[ , -ncol(training_dummied_fac_Miss)],
                tuneLength = 10,
                preProc = c("center", "scale"),
                trControl = trCtrl,
-               rfeControl = ctrl)
+               rfeControl = rfeCtrl)
 
 
 
