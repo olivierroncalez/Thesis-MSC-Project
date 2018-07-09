@@ -649,8 +649,605 @@ trCtrl$sampling <- NULL
 
 
 
+
+
+
+
+########################################################################################################
+########################################################################################################
+
+#                                        Feature Selection
+
+########################################################################################################
+########################################################################################################
+
+
+
+##############################################
+#
+#                   Functions 
+#
+##############################################
+
+
+##############################################
+# Decision Tree
+
+dt_filter <- function(score, x, y) {
+     keepers <- score > 0
+     keepers
+}
+
+
+dt_score <- function(x, y) {
+     dat <- dplyr::bind_cols(x, y = y)
+     out <- rpart::rpart(y ~., data = dat)$variable.importance
+     pred_names <- names(x)
+     v = vector()
+     for (i in pred_names) {
+          if (i %in% names(out)) {
+               v[i] <- out[i]
+          } else {
+               v[i] <- 0
+          }
+     }
+     out <- v
+     out
+}
+
+
+
+
+
+##############################################
+# Univariate Filter
+
+uni_pscore <- function(x, y) {
+     
+     numX <- length(unique(x))
+     if(numX > 2) {
+          out <- t.test(x ~ y)$p.value
+     } else {
+          out <- fisher.test(factor(x), y)$p.value
+     }
+     out
+}
+
+
+uni_pscore_filter <- function(score, x, y) {
+     keepers <- (score <= 0.05)
+     keepers
+}
+
+
+
+
+
+##############################################
+# Relief Filter (in progress)
+
+CORElearn::attrEval(Comp_30 ~., 
+                    data = training_dummied_fac_Miss,
+                    estimator = 'GainRatio')
+
+
+
+
+
+
+
+##############################################
+#
+#                   Control Objects
+#
+##############################################
+
+
+# Five stats summary
+fiveStats <- function(...) c(twoClassSummary(...), defaultSummary(...))
+
+
+# SBF Control (must be the same as previous train control for fair comparison)
+sbfCtrl <- sbfControl(method = "repeatedcv",
+                      repeats = 3,
+                      index = dummy_index, # IMPORTANT!
+                      verbose = TRUE,
+                      saveDetails = TRUE,
+                      allowParallel = TRUE,
+                      returnResamp = 'final')
+
+
+# RFE Control (must be the same as previous train control for fair comparison)
+rfeCtrl <- rfeControl(method = "repeatedcv", 
+                      repeats = 3,
+                      index = dummy_index,
+                      saveDetails = TRUE,
+                      returnResamp = 'final',
+                      allowParallel = TRUE,
+                      verbose = TRUE)
+
+
+# Train control (if tuning is needed, simple 10-fold CV) 
+trCtrl <-  trainControl(method = "cv",
+                        classProbs = TRUE, # For maximizing ROC curve
+                        verboseIter = TRUE,
+                        allowParallel = FALSE,
+                        summaryFunction = fiveStats)
+
+
+
+
+
+##############################################
+#
+#               CaretSBF Objects
+#
+##############################################
+
+
+# Decision Tree Embedded
+
+dtFilter <- caretSBF
+dtFilter$summary <- fiveStats
+dtFilter$score <- dt_score
+dtFilter$filter <- dt_filter
+
+
+
+
+
+# Univariate Filter (t-test)
+
+uni_filter <- caretSBF
+uni_filter$summary <- fiveStats
+uni_filter$score <- uni_pscore
+uni_filter$filter <- uni_pscore_filter
+
+
+
+
+
+
+############################################################################################
+############################################################################################
+#
+#                                       SBF Models
+#
+############################################################################################
+############################################################################################
+
+
+
+
+###############################################
+### 
+###                 Logistic
+###
+###############################################
+
+
+## UNIVARIATE FILTER
+
+
+# Set control elements for univariate filter
+sbfCtrl$multivariate <- FALSE
+sbfCtrl$functions <- uni_filter
+
+
+set.seed(337)
+log_sbf_UNI <- sbf(training_dummied_fac_Miss[, -ncol(training_dummied_fac_Miss)], # Last column is target
+                   fct_relevel(training_dummied_fac_Miss$Comp_30, 'Comp'), 
+                   sbfControl = sbfCtrl,
+                   # Train elements below here
+                   method = 'glm',
+                   family = 'binomial',
+                   preProcess = c('center', 'scale'))
+log_sbf_UNI
+log_sbf_UNI$fit
+
+
+
+
+## EMBEDDED FILTER
+
+# Set control elements for dt filter
+sbfCtrl$multivariate <- TRUE
+sbfCtrl$functions <- dtFilter
+
+set.seed(337)
+log_sbf_DT <- sbf(training_dummied_fac_Miss[, -ncol(training_dummied_fac_Miss)], # Last column is target
+                  fct_relevel(training_dummied_fac_Miss$Comp_30, 'Comp'), 
+                  sbfControl = sbfCtrl,
+                  # Train elements below here
+                  method = 'glm',
+                  family = 'binomial',
+                  preProcess = c('center', 'scale'))
+log_sbf_DT
+log_sbf_DT$fit
+
+
+
+
+
+
+
+###############################################
+### 
+###                 Random Forest (Works if data is not factor data (i.e. "_cat"))
+###
+###############################################
+
+
+## UNIVARIATE FILTER
+
+
+# Set control elements for univariate filter
+sbfCtrl$multivariate <- FALSE
+sbfCtrl$functions <- uni_filter
+
+# Grid of tuning parameters to try
+rf_grid <- expand.grid(mtry = c(1:7))
+
+set.seed(337)
+rf_sbf_UNI <- sbf(training_dummied_fac_Miss[, -ncol(training_dummied_fac_Miss)],
+                  training_dummied_fac_Miss$Comp_30,
+                  trControl = trCtrl,
+                  sbfControl = sbfCtrl,
+                  # Train elements below here
+                  tuneGrid = rf_grid,
+                  metric = "ROC",
+                  preProc = c("center", "scale"))
+rf_sbf_UNI
+rf_sbf_UNI$fit
+
+
+
+
+## EMBEDDED FILTER
+
+# Set control elements for dt filter
+sbfCtrl$multivariate <- TRUE
+sbfCtrl$functions <- dtFilter
+
+
+set.seed(337)
+rf_sbf_DT <- sbf(training_dummied_fac_Miss_cat[, -ncol(training_dummied_fac_Miss_cat)],
+                  training_dummied_fac_Miss_cat$Comp_30,
+                  trControl = trCtrl,
+                  sbfControl = sbfCtrl,
+                  # Train elements below here
+                  tuneGrid = rf_grid,
+                  metric = "ROC",
+                  preProc = c("center", "scale"))
+rf_sbf_UNI
+rf_sbf_UNI$fit
+
+
+
+
+
+###############################################
+### 
+###                 Naive Bayes
+###
+###############################################
+
+
+## UNIVARIATE FILTER
+
+
+# Set control elements for univariate filter
+sbfCtrl$multivariate <- FALSE
+sbfCtrl$functions <- uni_filter
+
+
+set.seed(337)
+nb_sbf_UNI <- sbf(training_dummied_fac_Miss[, -ncol(training_dummied_fac_Miss)],
+                      training_dummied_fac_Miss$Comp_30,
+                      trControl = trCtrl,
+                      sbfControl = sbfCtrl,
+                      # Train elements below here
+                      method = "nb",
+                      metric = "ROC",
+                      preProc = c("center", "scale"))
+nb_sbf_UNI
+nb_sbf_UNI$fit
+
+
+## EMBEDDED FILTER
+
+# Set control elements for dt filter
+sbfCtrl$multivariate <- TRUE
+sbfCtrl$functions <- dtFilter
+
+
+set.seed(337)
+nb_sbf_DT <- sbf(training_dummied_fac_Miss[, -ncol(training_dummied_fac_Miss)],
+                     training_dummied_fac_Miss$Comp_30,
+                     trControl = trCtrl,
+                     sbfControl = sbfCtrl,
+                     # Train elements below here
+                     method = "nb",
+                     metric = "ROC",
+                     preProc = c("center", "scale"))
+nb_sbf_DT
+nb_sbf_DT$fit
+
+
+
+
+
+###############################################
+### 
+###                 kNN
+###
+###############################################
+
+
+## UNIVARIATE FILTER
+
+
+# Set control elements for univariate filter
+sbfCtrl$multivariate <- FALSE
+sbfCtrl$functions <- uni_filter
+
+
+set.seed(337)
+knn_sbf_UNI <- sbf(training_dummied_fac_Miss[ , -ncol(training_dummied_fac_Miss)],
+                   training_dummied_fac_Miss$Comp_30,
+                   trControl = trCtrl,
+                   sbfControl = sbfCtrl,
+                   # Train elements below here
+                   method = "kknn",
+                   metric = "ROC",
+                   tuneLength = 10,
+                   preProc = c("center", "scale"))
+knn_sbf_UNI
+knn_sbf_UNI$fit
+
+
+
+## EMBEDDED FILTER
+
+# Set control elements for dt filter
+sbfCtrl$multivariate <- TRUE
+sbfCtrl$functions <- dtFilter
+
+
+set.seed(337)
+knn_sbf_DT <- sbf(training_dummied_fac_Miss[ , -ncol(training_dummied_fac_Miss)],
+                  training_dummied_fac_Miss$Comp_30,
+                  trControl = trCtrl,
+                  sbfControl = sbfCtrl,
+                  # Train elements below here
+                  method = "kknn",
+                  metric = "ROC",
+                  tuneLength = 10,
+                  preProc = c("center", "scale"))
+knn_sbf_DT
+knn_sbf_DT$fit
+
+
+
+
+
+
+###############################################
+### 
+###                 Neural Network
+###
+###############################################
+
+
+## UNIVARIATE FILTER
+
+
+# Set control elements for univariate filter
+sbfCtrl$multivariate <- FALSE
+sbfCtrl$functions <- uni_filter
+
+
+set.seed(337)
+nnet_sbf_UNI <- sbf(training_dummied_fac_Miss[ , -ncol(training_dummied_fac_Miss)],
+                      training_dummied_fac_Miss$Comp_30,
+                      trControl = trCtrl,
+                      sbfControl = sbfCtrl,
+                      # Train elements below here
+                      method = 'nnet',
+                      preProc = c("center", "scale"),
+                      tuneLength = 4,
+                      trace = FALSE, lineout = TRUE,
+                      metric = 'ROC')
+nnet_sbf_UNI
+nnet_sbf_UNI$fit
+
+
+
+
+## EMBEDDED FILTER
+
+# Set control elements for dt filter
+sbfCtrl$multivariate <- TRUE
+sbfCtrl$functions <- dtFilter
+
+set.seed(337)
+nnet_sbf_DT <- sbf(training_dummied_fac_Miss[ , -ncol(training_dummied_fac_Miss)],
+                     training_dummied_fac_Miss$Comp_30,
+                     trControl = trCtrl,
+                     sbfControl = sbfCtrl,
+                     # Train elements below here
+                     method = 'nnet',
+                     preProc = c("center", "scale"),
+                     tuneLength = 4,
+                     trace = FALSE, lineout = TRUE,
+                     metric = 'ROC')
+nnet_sbf_DT
+nnet_sbf_DT$fit
+
+
+
+
+
+
+
+############################################################################################
+############################################################################################
+#
+#                                       RFE Models
+#
+############################################################################################
+############################################################################################
+
+
+### Miscellaneous functions and control elements
+
+# Sequence length for RFE
+varSeq <- seq(1, length(training_dummied_fac_Miss_cat[, -ncol(training_dummied_fac_Miss_cat)])-1, by = 2)
+
+
+
+###############################################
+### 
+###                 Logistic (Error message)
+###
+###############################################
+
+
+rfeCtrl$functions <- lrFuncs
+rfeCtrl$functions$summary <- fiveStats
+
+# Change names to circumvent bug
+var_names <- names(training_dummied_fac_Miss)
+names(training_dummied_fac_Miss) <- gsub(pattern = "\\(|\\)",
+                                         replacement = '',
+                                         x = names(training_dummied_fac_Miss))
+
+
+set.seed(337)
+log_RFE <- rfe(training_dummied_fac_Miss[, -ncol(training_dummied_fac_Miss)],
+               training_dummied_fac_Miss$Comp_30,
+               sizes = varSeq,
+               metric = 'ROC',
+               preProcess = c('center', 'scale'),
+               rfeControl = rfeCtrl)
+log_RFE
+
+
+
+
+
+
+###############################################
+### 
+###                 Random Forest
+###
+###############################################
+
+
+rfeCtrl$functions <- rfFuncs
+rfeCtrl$functions$summary <- fiveStats
+
+
+set.seed(337)
+rf_RFE <- rfe(training_dummied_fac_Miss_cat[, -ncol(training_dummied_fac_Miss_cat)],
+              training_dummied_fac_Miss_cat$Comp_30,
+              rfeControl = rfeCtrl,
+              metric = "ROC",
+              preProc = c("center", "scale"),
+              ntree = 1000,
+              sizes = varSeq)
+rf_RFE
+rf_RFE$fit
+
+
+
+
+
+
+###############################################
+### 
+###                 Naive Bayes
+###
+###############################################
+
+
+rfeCtrl$functions <- nbFuncs
+rfeCtrl$functions$summary <- fiveStats
+
+
+set.seed(337)
+nb_RFE <- rfe(training_dummied_fac_Miss[, -ncol(training_dummied_fac_Miss)],
+                  training_dummied_fac_Miss$Comp_30,
+                  rfeControl = rfeCtrl,
+                  sizes = varSeq,
+                  metric = "ROC",
+                  preProc = c("center", "scale"))
+nb_RFE
+
+
+
+
+
+
+###############################################
+### 
+###                   kNN 
+###
+###############################################
+
+
+rfeCtrl$functions <- caretFuncs
+rfeCtrl$functions$summary <- fiveStats
+
+
+set.seed(721)
+knn_RFE <- rfe(training_dummied_fac_Miss[ , -ncol(training_dummied_fac_Miss)],
+               training_dummied_fac_Miss$Comp_30,
+               sizes = varSeq,
+               metric = "ROC",
+               method = "kknn",
+               tuneLength = 10,
+               preProc = c("center", "scale"),
+               trControl = trCtrl,
+               rfeControl = rfeCtrl)
+knn_RFE
+
+
+
+
+###############################################
+### 
+###                Nnet 
+###
+###############################################
+
+rfeCtrl$functions <- caretFuncs
+rfeCtrl$functions$summary <- fiveStats
+
+
+set.seed(337)
+nnet_RFE <- rfe(training_dummied_fac_Miss[ , -ncol(training_dummied_fac_Miss)],
+                  training_dummied_fac_Miss$Comp_30,
+                  sizes = varSeq,
+                  method = 'nnet',
+                  preProc = c("center", "scale"),
+                  tuneLength = 4,
+                  trace = FALSE, 
+                  lineout = TRUE,
+                  metric = 'ROC',
+                  trControl = trCtrl,
+                  rfeControl = rfeCtrl)
+nnet_RFE
+
+
+
+
+
+
+
 # Model Comparisons (Full) ----------------------------------------------------------------
 
+# load('results_ML_Models_Msc_final.RData') # Load the models which have been run
 
 ########################################################################
 ### 
@@ -665,10 +1262,14 @@ logisticFull
 logisticFull_up
 logisticFull_down
 logisticFull_smote
+log_sbf_UNI
+log_sbf_DT
+log_RFE
 
 # Test set results
 logisticFull_ROC # Test set ROC
 logisticFull_pred # Test set predictions
+
 
 
 
@@ -680,6 +1281,10 @@ rfFull
 rfFull_up
 rfFull_down
 rfFull_smote
+rf_sbf_UNI
+rf_sbf_DT
+rf_RFE
+
 
 # Test set results
 rfFull_ROC # Test set ROC
@@ -688,17 +1293,23 @@ rfFull_pred # Test set predictions
 
 
 
+
 ### Naive Bayes
 
 # Resampling results
-knnFull
-knnFull_up
-knnFull_down
-knnFull_smote
+nbFull
+nbFull_up
+nbFull_down
+nbFull_smote
+nb_sbf_UNI
+nb_sbf_DT
+nb_RFE
+
+
 
 # Test set results
-knnFull_ROC # Test set ROC
-knnFull_pred # Test set predictions
+nbFull_ROC # Test set ROC
+nbFull_pred # Test set predictions
 
 
 
@@ -710,6 +1321,9 @@ knnFull
 knnFull_up
 knnFull_down
 knnFull_smote
+knn_sbf_UNI
+knn_sbf_DT
+knn_RFE
 
 # Test set results
 knnFull_ROC # Test set ROC
@@ -725,6 +1339,11 @@ nnetFull
 nnetFull_up
 nnetFull_down
 nnetFull_smote
+nnet_sbf_UNI
+nnet_sbf_DT
+nnet_RFE
+
+
 
 # Test set results
 nnetFull_ROC # Test set ROC
@@ -737,7 +1356,7 @@ nnetFull_pred # Test set predictions
 ### 
 ########################################################################
 
-# Resampling model list
+# Resampling model list (full)
 model_list <- list('Logistic Reg' = logisticFull,
                    'Random Forest' = rfFull,
                    'N. Bayes' = nbFull,
@@ -746,10 +1365,30 @@ model_list <- list('Logistic Reg' = logisticFull,
 resample_list  <- resamples(model_list) 
 
 
-# Summary
+
+# Resampling model list (RFE)
+model_list_RFE <- list('Logistic Reg' = log_RFE,
+                   'Random Forest' = rf_RFE,
+                   'N. Bayes' = nb_RFE,
+                   'kNN' = knn_RFE,
+                   'Neural Net' = nnet_RFE)
+resample_list_RFE  <- resamples(model_list_RFE) 
+summary(resample_list_RFE)
+
+
+
+# Summary (full)
 Full_resample_summary <- summary(resample_list)
 Full_resample_summary # Explore the full summary for all 5 metrics
 Full_resample_summary$statistics$ROC[, -7] # View ROC resampling results
+
+
+
+# Summary (RFE)
+Full_resample_summary_RFE <- summary(resample_list_RFE)
+Full_resample_summary_RFE # Explore the full summary for all 5 metrics
+Full_resample_summary_RFE$statistics$ROC[, -7] # View ROC resampling results
+
 
 
 # Inferential Statistics (pairwise comparisons) - ROC 
@@ -784,10 +1423,10 @@ nnetFull_pred
 
 # Cohen's Kappa
 model_pred_full <- bind_cols(logFull = logisticFull_pred, 
-          rfFull = rfFull_pred,
-          nbFull = nbFull_pred,
-          knnFull = knnFull_pred,
-          nnetFull = nnetFull_pred)
+                             rfFull = rfFull_pred,
+                             nbFull = nbFull_pred,
+                             knnFull = knnFull_pred,
+                             nnetFull = nnetFull_pred)
 psych::cohen.kappa(model_pred_full, alpha = 0.05)
 
 
@@ -866,30 +1505,4 @@ plot(knnFull_ROC, legacy.axes = TRUE, print.thres = TRUE, add = TRUE, col = 4)
 plot(nnetFull_ROC, legacy.axes = TRUE, print.thres = TRUE, add = TRUE, col = 5)
 # Important to note that these models were trained on the full training data and are thus
 # different to those in the resampled results
-
-
-
-
-
-
-
-
-
-
-
-########################################################################################################
-########################################################################################################
-
-#                                        Feature Selection
-
-########################################################################################################
-########################################################################################################
-
-
-
-########################################################################
-### 
-###                      Embedded
-### 
-########################################################################
 
