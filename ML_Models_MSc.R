@@ -79,6 +79,7 @@ rm('idx') # Remove index
 
 
 
+
 ########################################################################
 ### Cross-Fold Validation index generation
 
@@ -89,6 +90,8 @@ set.seed(337)
 dummy_index <- createMultiFolds(training_dummied_fac_Miss$Comp_30, times = 3) # Dummied factor missing data
 # set.seed(337)
 # index_noMiss <- createMultiFolds(y = training_noMiss$Comp_30, times = 3) # No missing data
+
+
 
 
 
@@ -122,7 +125,7 @@ predVars <- names(select(training_facMiss, -Comp_30)) # Predictor namesfor group
 
 
 # Cross-fold validation control (computational nuances)
-trCtrl <- trainControl(method = "repeatedcv", # Defaults to 10
+trCtrl <- trainControl(method = "repeatedcv", # Defaults to 10-CV
                      repeats = 3,
                      summaryFunction = fiveStats,
                      index = dummy_index, # IMPORTANT! Uses the same index for all models
@@ -131,10 +134,6 @@ trCtrl <- trainControl(method = "repeatedcv", # Defaults to 10
                      verboseIter = TRUE,
                      savePredictions = TRUE,
                      returnResamp = 'final')
-
-
-
-
 
 
 
@@ -209,6 +208,7 @@ logisticFull_up <- train(training_dummied_fac_Miss[, -ncol(training_dummied_fac_
                       preProcess = c('center', 'scale'),
                       trace = 0, 
                       trControl = trCtrl) 
+logisticFull_up
 
 
 ### DOWN SAMPLING
@@ -222,6 +222,7 @@ logisticFull_down <- train(training_dummied_fac_Miss[, -ncol(training_dummied_fa
                          preProcess = c('center', 'scale'),
                          trace = 0, 
                          trControl = trCtrl) 
+logisticFull_down
 
 
 ### SMOTE SAMPLING
@@ -235,6 +236,8 @@ logisticFull_smote <- train(training_dummied_fac_Miss[, -ncol(training_dummied_f
                            preProcess = c('center', 'scale'),
                            trace = 0, 
                            trControl = trCtrl) 
+logisticFull_smote
+
 
 # Turn off sampling
 trCtrl$sampling <- NULL
@@ -315,6 +318,7 @@ rfFull_up <- train(training_dummied_fac_Miss_cat[, -ncol(training_dummied_fac_Mi
                 tuneGrid = rf_grid,
                 ntree = 1000,
                 trControl = trCtrl)
+rfFull_up
 
 
 ### DOWN SAMPLING
@@ -330,6 +334,7 @@ rfFull_down <- train(training_dummied_fac_Miss_cat[, -ncol(training_dummied_fac_
                    tuneGrid = rf_grid,
                    ntree = 1000,
                    trControl = trCtrl)
+rfFull_down
 
 
 ### SMOTE SAMPLING
@@ -345,6 +350,8 @@ rfFull_smote <- train(training_dummied_fac_Miss_cat[, -ncol(training_dummied_fac
                      tuneGrid = rf_grid,
                      ntree = 1000,
                      trControl = trCtrl)
+rfFull_smote
+
 
 # Turn off sampling
 trCtrl$sampling <- NULL
@@ -413,6 +420,7 @@ nbFull_up <- train(training_dummied_fac_Miss_cat[, -ncol(training_dummied_fac_Mi
                 metric = "ROC",
                 preProc = c("center", "scale"),
                 trControl = trCtrl)
+nbFull_up
 
 
 ### DOWN SAMPLING
@@ -426,6 +434,7 @@ nbFull_down <- train(training_dummied_fac_Miss_cat[, -ncol(training_dummied_fac_
                    metric = "ROC",
                    preProc = c("center", "scale"),
                    trControl = trCtrl)
+nbFull_down
 
 
 ### SMOTE SAMPLING
@@ -439,10 +448,12 @@ nbFull_smote <- train(training_dummied_fac_Miss_cat[, -ncol(training_dummied_fac
                    metric = "ROC",
                    preProc = c("center", "scale"),
                    trControl = trCtrl)
+nbFull_smote
 
 
 # Turn off sampling
 trCtrl$sampling <- NULL
+
 
 
 
@@ -488,6 +499,54 @@ auc(knnFull_ROC)
 
 
 
+########################################################################
+### Sampling
+
+
+### UP SAMPLING
+trCtrl$sampling <- 'up'
+
+set.seed(337)
+knnFull_up <- train(training_dummied_fac_Miss[ , -ncol(training_dummied_fac_Miss)],
+                 training_dummied_fac_Miss$Comp_30,
+                 method = "kknn",
+                 metric = "ROC",
+                 tuneLength = 10,
+                 preProc = c("center", "scale"),
+                 trControl = trCtrl)
+knnFull_up
+
+
+### DOWN SAMPLING
+trCtrl$sampling <- 'down'
+
+set.seed(337)
+knnFull_down <- train(training_dummied_fac_Miss[ , -ncol(training_dummied_fac_Miss)],
+                    training_dummied_fac_Miss$Comp_30,
+                    method = "kknn",
+                    metric = "ROC",
+                    tuneLength = 10,
+                    preProc = c("center", "scale"),
+                    trControl = trCtrl)
+knnFull_down
+
+
+### SMOTE SAMPLING
+trCtrl$sampling <- 'smote'
+
+set.seed(337)
+knnFull_smote <- train(training_dummied_fac_Miss[ , -ncol(training_dummied_fac_Miss)],
+                      training_dummied_fac_Miss$Comp_30,
+                      method = "kknn",
+                      metric = "ROC",
+                      tuneLength = 10,
+                      preProc = c("center", "scale"),
+                      trControl = trCtrl)
+knnFull_smote
+
+
+
+
 
 
 ########################################################################
@@ -517,7 +576,7 @@ nnetFull_pred <- predict(nnetFull, testing_dummied_fac_Miss) # Predicting test s
 confusionMatrix(nnetFull_pred, testing_dummied_fac_Miss$Comp_30) # Confusion matrix
 
 
-# ROC Training Set
+# ROC Test Set
 nnetFull_ROC <- roc(testing_dummied_fac_Miss$Comp_30, 
                    predict(nnetFull, testing_dummied_fac_Miss, type = 'prob')[,1], 
                    ci = TRUE)
@@ -548,6 +607,7 @@ nnetFull_up <- train(training_dummied_fac_Miss[ , -ncol(training_dummied_fac_Mis
                   trace = FALSE, lineout = TRUE,
                   metric = 'ROC',
                   trControl = trCtrl)
+nnetFull_up
 
 
 ### DOWN SAMPLING
@@ -563,6 +623,7 @@ nnetFull_down <- train(training_dummied_fac_Miss[ , -ncol(training_dummied_fac_M
                      trace = FALSE, lineout = TRUE,
                      metric = 'ROC',
                      trControl = trCtrl)
+nnetFull_down
 
 
 ### SMOTE SAMPLING
@@ -578,6 +639,7 @@ nnetFull_smote <- train(training_dummied_fac_Miss[ , -ncol(training_dummied_fac_
                        trace = FALSE, lineout = TRUE,
                        metric = 'ROC',
                        trControl = trCtrl)
+nnetFull_smote
 
 
 trCtrl$sampling <- NULL
@@ -588,6 +650,85 @@ trCtrl$sampling <- NULL
 
 
 # Model Comparisons (Full) ----------------------------------------------------------------
+
+
+########################################################################
+### 
+###                           Result Objects
+### 
+########################################################################
+
+### Logistic Regression
+
+# Resampling results
+logisticFull
+logisticFull_up
+logisticFull_down
+logisticFull_smote
+
+# Test set results
+logisticFull_ROC # Test set ROC
+logisticFull_pred # Test set predictions
+
+
+
+
+### Random Forests
+
+# Resampling results
+rfFull
+rfFull_up
+rfFull_down
+rfFull_smote
+
+# Test set results
+rfFull_ROC # Test set ROC
+rfFull_pred # Test set predictions
+
+
+
+
+### Naive Bayes
+
+# Resampling results
+knnFull
+knnFull_up
+knnFull_down
+knnFull_smote
+
+# Test set results
+knnFull_ROC # Test set ROC
+knnFull_pred # Test set predictions
+
+
+
+
+### K-Nearest Neighbor
+
+# Resampling results
+knnFull
+knnFull_up
+knnFull_down
+knnFull_smote
+
+# Test set results
+knnFull_ROC # Test set ROC
+knnFull_pred # Test set predictions
+
+
+
+
+### Neural Net
+
+# Resampling results
+nnetFull
+nnetFull_up
+nnetFull_down
+nnetFull_smote
+
+# Test set results
+nnetFull_ROC # Test set ROC
+nnetFull_pred # Test set predictions
 
 
 ########################################################################
@@ -612,7 +753,7 @@ Full_resample_summary$statistics$ROC[, -7] # View ROC resampling results
 
 
 # Inferential Statistics (pairwise comparisons) - ROC 
-diff.resamples.Full <- diff(resample_list, metric = 'ROC', adjustment = 'none')
+diff.resamples.Full <- diff(resample_list, metric = 'ROC', adjustment = 'none') # No pairwise adjustment
 summary(diff.resamples.Full)
 
 
@@ -621,6 +762,7 @@ summary(diff.resamples.Full)
 compare_models(rfFull, knnFull, metric = 'ROC') # Same as above is no adjustment is made
 # Conducts one sample t-test using the difference scores of all resample folds (30 in this case)
 # For accuracy comparisons, binomial test is used by the caret package.
+
 
 
 
@@ -688,6 +830,9 @@ ci.auc(nnetFull_ROC)
 ########################################################################
 
 
+
+
+
 ########################################################################
 ### RESAMPLING
 
@@ -699,11 +844,19 @@ dotplot(resample_list , metric = 'ROC', axes = TRUE)
 # Resampling results (inferential pairwise comparisons)
 dotplot(diff.resamples.Full)
 
+
+# View tuning parameters over resamplign results
+plot(rfFull)
+plot(nbFull)
 plot(knnFull)
+plot(nnetFull)
+
+
 
 
 ########################################################################
 ### TEST SET
+
 
 # ROC Curves (full training data - holdout set) 
 plot(logisticFull_ROC, legacy.axes = TRUE, print.thres = TRUE, main = 'ROC', identity.lty = 2)
