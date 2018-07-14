@@ -1431,6 +1431,16 @@ summary(resample_list_sample)
 
 
 
+### Resampling model list (BEST)
+model_list_best <- list('Logistic Reg (RFE)' = log_RFE,
+                        'Random Forest (Uni)' = rf_sbf_UNI,
+                        'N. Bayes (RFE)' = nb_RFE,
+                        'kNN (RFE)' = knn_RFE,
+                        'Neural Net (DT)' = nnet_sbf_DT)
+resample_list_best <- resamples(model_list_best)
+summary(resample_list_best)
+
+
 
 
 ########################################################################
@@ -1441,7 +1451,7 @@ summary(resample_list_sample)
 resample_summary_Full <- summary(resample_list)
 resample_summary_Full # Explore the full summary for all 5 metrics
 resample_summary_Full$statistics$ROC[, -7] # View ROC resampling results
-# xtable(resample_summary_Full$statistics$ROC[, -7], caption = 'Resample ROC Summary Statistics')
+# xtable(resample_summary_Full$statistics$ROC[, -7], caption = 'Resample ROC Summary Statistics', digits = 3)
 
 
 
@@ -1449,6 +1459,7 @@ resample_summary_Full$statistics$ROC[, -7] # View ROC resampling results
 resample_summary_sbf_UNI <- summary(resample_list_sbf_UNI)
 resample_summary_sbf_UNI # Explore the full summary for all 5 metrics
 resample_summary_sbf_UNI$statistics$ROC[, -7] # View ROC resampling results
+# xtable(resample_summary_sbf_UNI$statistics$ROC[, -7])
 
 
 
@@ -1456,6 +1467,7 @@ resample_summary_sbf_UNI$statistics$ROC[, -7] # View ROC resampling results
 resample_summary_sbf_DT <- summary(resample_list_sbf_DT)
 resample_summary_sbf_DT # Explore the full summary for all 5 metrics
 resample_summary_sbf_DT$statistics$ROC[, -7] # View ROC resampling results
+# xtable(resample_summary_sbf_DT$statistics$ROC[, -7])
 
 
 
@@ -1463,7 +1475,7 @@ resample_summary_sbf_DT$statistics$ROC[, -7] # View ROC resampling results
 resample_summary_RFE <- summary(resample_list_RFE)
 resample_summary_RFE # Explore the full summary for all 5 metrics
 resample_summary_RFE$statistics$ROC[, -7] # View ROC resampling results
-# xtable(resample_summary_RFE$statistics$ROC[, -7], caption ='Resample ROC Summary Statistics for RFE')
+# xtable(resample_summary_RFE$statistics$ROC[, -7])
 
 
 
@@ -1471,6 +1483,15 @@ resample_summary_RFE$statistics$ROC[, -7] # View ROC resampling results
 resample_summary_sample <- summary(resample_list_sample)
 resample_summary_sample # Explore the full summary for all 5 metrics
 resample_summary_sample$statistics$ROC[, -7] # View ROC resampling results
+xtable(resample_summary_sample$statistics$ROC[, -7])
+
+
+
+# Summary (Best)
+resample_summary_best <- summary(resample_list_best)
+resample_summary_best
+resample_summary_best$statistics$ROC[, -7]
+xtable(resample_summary_best$statistics$ROC[, -7])
 
 
 
@@ -1483,34 +1504,45 @@ resample_summary_sample$statistics$ROC[, -7] # View ROC resampling results
 
 # Inferential Statistics (pairwise comparisons) - ROC Full predictors
 diff.resamples.Full <- diff(resample_list, metric = 'ROC', adjustment = 'none') # No pairwise adjustment
-diff.resamples.Full.Summary <- summary(diff.resamples.Full) 
+diff.resamples.Full.Summary <- summary(diff.resamples.Full, digits = 1) 
 diff.resamples.Full.Summary
-# diff.resamples.Full.Summary$table$ROC %>% xtable()
+diff.resamples.Full.Summary$table$ROC %>% xtable(digits = 1)
 
 
 # Inferential Statistics (pairwise comparisons) - ROC SBF uni predictors
 diff.resamples.sbf.UNI <- diff(resample_list_sbf_UNI, metric = 'ROC', adjustment = 'none') # No pairwise adjustment
-diff.resamples.sbf.UNI.Summary <- summary(diff.resamples.sbf.UNI) 
+diff.resamples.sbf.UNI.Summary <- summary(diff.resamples.sbf.UNI, digits = 1) 
 diff.resamples.sbf.UNI.Summary
+diff.resamples.sbf.UNI.Summary$table$ROC %>% xtable(digits = 1)
 
 
-# Inferential Statistics (pairwise comparisons) - ROC SBF uni predictors
+# Inferential Statistics (pairwise comparisons) - ROC SBF dt predictors
 diff.resamples.sbf.DT <- diff(resample_list_sbf_DT, metric = 'ROC', adjustment = 'none') # No pairwise adjustment
-diff.resamples.sbf.DT.Summary <- summary(diff.resamples.sbf.DT) 
+diff.resamples.sbf.DT.Summary <- summary(diff.resamples.sbf.DT, digits = 1) 
 diff.resamples.sbf.DT.Summary
+diff.resamples.sbf.DT.Summary$table$ROC %>% xtable(digits = 1)
 
 
-# Inferential Statistics (pairwise comparisons) - ROC SBF uni predictors
+# Inferential Statistics (pairwise comparisons) - ROC RFE predictors
 diff.resamples.rfe <- diff(resample_list_RFE, metric = 'ROC', adjustment = 'none') # No pairwise adjustment
-diff.resamples.rfe.Summary <- summary(diff.resamples.rfe) 
+diff.resamples.rfe.Summary <- summary(diff.resamples.rfe, digits = 1) 
 diff.resamples.rfe.Summary
+diff.resamples.rfe.Summary$table$ROC %>% xtable(digits = 1)
 
 
-# Inferential Statistics (pairwise comparisons) - ROC SBF uni predictors
+# Inferential Statistics (pairwise comparisons) - ROC sampling predictors
 diff.resamples.sampling <- diff(resample_list_sample, metric = 'ROC', adjustment = 'none') # No pairwise adjustment
-diff.resamples.sampling.Summary <- summary(diff.resamples.sampling) 
+diff.resamples.sampling.Summary <- summary(diff.resamples.sampling, digits = 1) 
 diff.resamples.sampling.Summary
+diff.resamples.sampling.Summary$table$ROC %>% xtable(digits = 1)
 
+
+
+# Inferential Statistics (pairwise comparisons) 
+diff.resamples.best <- diff(resample_list_best, metric = 'ROC', adjustment = 'none')
+diff.resmaples.best.Summary <- summary(diff.resamples.best, digits = 1)
+diff.resmaples.best.Summary
+diff.resmaples.best.Summary$table$ROC %>% xtable(digits = 1)
 
 
 
@@ -1540,12 +1572,13 @@ nnetFull_pred
 
 
 # Cohen's Kappa
-model_pred_full <- bind_cols(logFull = logisticFull_pred, 
-                             rfFull = rfFull_pred,
-                             nbFull = nbFull_pred,
-                             knnFull = knnFull_pred,
-                             nnetFull = nnetFull_pred)
+model_pred_full <- bind_cols('Logistic Reg' = logisticFull_pred, 
+                             'Random Forest' = rfFull_pred,
+                             'N. Bayes' = nbFull_pred,
+                             'kNN' = knnFull_pred,
+                             'Neural Net' = nnetFull_pred)
 psych::cohen.kappa(model_pred_full, alpha = 0.05)
+
 
 
 # Univariate inferential statistics (conducted on ROC)
@@ -1604,12 +1637,22 @@ test.auc.full <- bind_cols(logFull_ROC = as.numeric(ci.auc(logisticFull_ROC)),
 
 
 # Resampling results (no comparisons)
-dotplot(resample_list , metric = 'ROC', axes = TRUE, main = 'Resampling Distribution of ROC Scores')
+dotplot(resample_list, metric = 'ROC', axes = TRUE) # Rplot1 Full
+dotplot(resample_list_RFE, metric = 'ROC')
+dotplot(resample_list_best, metric = 'ROC')
+
+
+
 
 
 
 # Resampling results (inferential pairwise comparisons)
-dotplot(diff.resamples.Full, main  = 'Differences in ROC Scores Between Models')
+dotplot(diff.resamples.Full) # Rplot2 Full Diff
+dotplot(diff.resamples.rfe)
+dotplot(diff.resamples.best)
+
+
+
 
 
 # View tuning parameters over resamplign results
@@ -1617,6 +1660,7 @@ plot(rfFull)
 plot(nbFull)
 plot(knnFull)
 plot(nnetFull)
+
 
 
 
