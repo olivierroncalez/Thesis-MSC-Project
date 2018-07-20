@@ -568,8 +568,3 @@ avNNet_RFE <- rfe(training_dummied_fac_Miss[ , -ncol(training_dummied_fac_Miss)]
                      rfeControl = rfeCtrl)
 
 
-cl <- makeCluster(15, outfile = '')
-registerDoParallel(cl) # Change to acceptable number of cores based on your feasability
-getDoParWorkers()
-stopCluster(cl) # Stop cluster computations
-registerDoSEQ() # Unregister doParallel
