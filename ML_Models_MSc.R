@@ -1247,7 +1247,7 @@ nnet_RFE
 
 # Model Comparisons (Full) ----------------------------------------------------------------
 
-# load('results_ML_Models_Msc_final2.RData') # Load the models which have been run
+# load('results_ML_Models_Msc_final3.RData') # Load the models which have been run
 # Final '2' adds some of the resamples lists from version 1. No additional models were run.
 
 ########################################################################
@@ -1508,35 +1508,35 @@ xtable(resample_summary_best$statistics$ROC[, -7])
 diff.resamples.Full <- diff(resample_list, metric = 'ROC', adjustment = 'none') # No pairwise adjustment
 diff.resamples.Full.Summary <- summary(diff.resamples.Full, digits = 1) 
 diff.resamples.Full.Summary
-diff.resamples.Full.Summary$table$ROC %>% xtable(digits = 1)
+# diff.resamples.Full.Summary$table$ROC %>% xtable(digits = 1)
 
 
 # Inferential Statistics (pairwise comparisons) - ROC SBF uni predictors
 diff.resamples.sbf.UNI <- diff(resample_list_sbf_UNI, metric = 'ROC', adjustment = 'none') # No pairwise adjustment
 diff.resamples.sbf.UNI.Summary <- summary(diff.resamples.sbf.UNI, digits = 1) 
 diff.resamples.sbf.UNI.Summary
-diff.resamples.sbf.UNI.Summary$table$ROC %>% xtable(digits = 1)
+# diff.resamples.sbf.UNI.Summary$table$ROC %>% xtable(digits = 1)
 
 
 # Inferential Statistics (pairwise comparisons) - ROC SBF dt predictors
 diff.resamples.sbf.DT <- diff(resample_list_sbf_DT, metric = 'ROC', adjustment = 'none') # No pairwise adjustment
 diff.resamples.sbf.DT.Summary <- summary(diff.resamples.sbf.DT, digits = 1) 
 diff.resamples.sbf.DT.Summary
-diff.resamples.sbf.DT.Summary$table$ROC %>% xtable(digits = 1)
+# diff.resamples.sbf.DT.Summary$table$ROC %>% xtable(digits = 1)
 
 
 # Inferential Statistics (pairwise comparisons) - ROC RFE predictors
 diff.resamples.rfe <- diff(resample_list_RFE, metric = 'ROC', adjustment = 'none') # No pairwise adjustment
 diff.resamples.rfe.Summary <- summary(diff.resamples.rfe, digits = 1) 
 diff.resamples.rfe.Summary
-diff.resamples.rfe.Summary$table$ROC %>% xtable(digits = 1)
+# diff.resamples.rfe.Summary$table$ROC %>% xtable(digits = 1)
 
 
 # Inferential Statistics (pairwise comparisons) - ROC sampling predictors
 diff.resamples.sampling <- diff(resample_list_sample, metric = 'ROC', adjustment = 'none') # No pairwise adjustment
 diff.resamples.sampling.Summary <- summary(diff.resamples.sampling, digits = 1) 
 diff.resamples.sampling.Summary
-diff.resamples.sampling.Summary$table$ROC %>% xtable(digits = 1)
+# diff.resamples.sampling.Summary$table$ROC %>% xtable(digits = 1)
 
 
 
@@ -1544,7 +1544,7 @@ diff.resamples.sampling.Summary$table$ROC %>% xtable(digits = 1)
 diff.resamples.best <- diff(resample_list_best, metric = 'ROC', adjustment = 'none')
 diff.resmaples.best.Summary <- summary(diff.resamples.best, digits = 1)
 diff.resmaples.best.Summary
-diff.resmaples.best.Summary$table$ROC %>% xtable(digits = 1)
+# diff.resmaples.best.Summary$table$ROC %>% xtable(digits = 1)
 
 
 
@@ -1707,14 +1707,8 @@ plot(nnetFull_ROC, legacy.axes = TRUE, print.thres = TRUE, add = TRUE, col = 5)
 
 
 
-log_RFE_vars
-rf_RFE_vars
-nb_RFE_vars
-knn_RFE_vars
-nnet_RFE_vars
-
-intersect(nnet_RFE_vars, rf_RFE_vars)  %>% intersect(knn_RFE_vars) %>% length
 
 
 
-# Write that statement at the bottom of the code...
+
+
