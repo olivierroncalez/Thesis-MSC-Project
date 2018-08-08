@@ -1125,7 +1125,7 @@ names(training_dummied_fac_Miss) <- gsub(pattern = "\\(|\\)",
 
 set.seed(337)
 log_RFE <- rfe(training_dummied_fac_Miss[, -ncol(training_dummied_fac_Miss)],
-               training_dummied_fac_Miss$Comp_30,
+               fct_relevel(training_dummied_fac_Miss$Comp_30, 'Comp'),
                sizes = varSeq,
                metric = 'ROC',
                preProcess = c('center', 'scale'),
@@ -1247,7 +1247,8 @@ nnet_RFE
 
 # Model Comparisons (Full) ----------------------------------------------------------------
 
-# load('results_ML_Models_Msc_final.RData') # Load the models which have been run
+# load('results_ML_Models_Msc_final2.RData') # Load the models which have been run
+# Final '2' adds some of the resamples lists from version 1. No additional models were run.
 
 ########################################################################
 ### 
@@ -1369,7 +1370,7 @@ model_list <- list('Logistic Reg' = logisticFull,
                    'kNN' = knnFull,
                    'Neural Net' = nnetFull)
 resample_list  <- resamples(model_list) 
-
+summary(resample_list)
 
 
 ### Resampling model list (SBF uni)
@@ -1432,7 +1433,8 @@ summary(resample_list_sample)
 
 
 ### Resampling model list (BEST)
-model_list_best <- list('Logistic Reg (RFE)' = log_RFE,
+model_list_best <- list('Logistic Reg (Baseline)' = logisticFull,
+                        'Logistic Reg (RFE)' = log_RFE,
                         'Random Forest (Uni)' = rf_sbf_UNI,
                         'N. Bayes (RFE)' = nb_RFE,
                         'kNN (RFE)' = knn_RFE,
@@ -1650,17 +1652,42 @@ dotplot(resample_list_best, metric = 'ROC')
 dotplot(diff.resamples.Full) # Rplot2 Full Diff
 dotplot(diff.resamples.rfe)
 dotplot(diff.resamples.best)
+dotplot(diff.resamples.sbf.UNI)
 
 
 
 
 
-# View tuning parameters over resamplign results
+# Resampling results (RFE) model performance plots
+LR_RFE_plot <- ggplot(log_RFE) + labs(y = '', title = 'Logistic Reg.',
+                                      x = '') + theme(plot.title = element_text(hjust = 0.5))
+RF_RFE_plot <- ggplot(rf_RFE) + labs(y = '', title = 'Random Forest',
+                                     x = '') + theme(plot.title = element_text(hjust = 0.5))
+knn_RFE_plot <- ggplot(knn_RFE) + labs(y = '', title = 'kNN',
+                                       x = '') + theme(plot.title = element_text(hjust = 0.5))
+nb_RFE_plot <- ggplot(nb_RFE) + labs(y = '', title = 'N. Bayes',
+                                     x = '') + theme(plot.title = element_text(hjust = 0.5))
+nnet_RFE_plot <- ggplot(nnet_RFE) + labs(y = '', title = 'Neural Net',
+                                         x = '') + theme(plot.title = element_text(hjust = 0.5))
+
+
+library(gridExtra)
+library(grid)
+grid.arrange(LR_RFE_plot, RF_RFE_plot, knn_RFE_plot,
+             nb_RFE_plot, nnet_RFE_plot, nrow = 3, ncol = 2,
+             bottom = textGrob('Number of Variables', gp = gpar(fontface = 'bold', fontsize = '14')), 
+             left = textGrob('ROC', gp = gpar(fontface = 'bold', fontsize = '14'), rot = 90))
+
+
+
+
+# View tuning parameters over resampling results
 plot(rfFull)
 plot(nbFull)
 plot(knnFull)
 plot(nnetFull)
 
+     
 
 
 
@@ -1678,3 +1705,16 @@ plot(nnetFull_ROC, legacy.axes = TRUE, print.thres = TRUE, add = TRUE, col = 5)
 # Important to note that these models were trained on the full training data and are thus
 # different to those in the resampled results
 
+
+
+log_RFE_vars
+rf_RFE_vars
+nb_RFE_vars
+knn_RFE_vars
+nnet_RFE_vars
+
+intersect(nnet_RFE_vars, rf_RFE_vars)  %>% intersect(knn_RFE_vars) %>% length
+
+
+
+# Write that statement at the bottom of the code...
