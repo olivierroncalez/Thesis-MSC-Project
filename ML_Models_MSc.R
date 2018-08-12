@@ -546,6 +546,9 @@ knnFull_smote
 
 
 
+# Turn off sampling
+trCtrl$sampling <- NULL
+
 
 
 
@@ -720,15 +723,6 @@ uni_pscore_filter <- function(score, x, y) {
 }
 
 
-
-
-
-##############################################
-# Relief Filter (in progress)
-
-CORElearn::attrEval(Comp_30 ~., 
-                    data = training_dummied_fac_Miss,
-                    estimator = 'GainRatio')
 
 
 
@@ -919,8 +913,8 @@ rf_sbf_DT <- sbf(training_dummied_fac_Miss_cat[, -ncol(training_dummied_fac_Miss
                   tuneGrid = rf_grid,
                   metric = "ROC",
                   preProc = c("center", "scale"))
-rf_sbf_UNI
-rf_sbf_UNI$fit
+rf_sbf_DT
+rf_sbf_DT$fit
 
 
 
@@ -1108,7 +1102,7 @@ varSeq <- seq(1, length(training_dummied_fac_Miss_cat[, -ncol(training_dummied_f
 
 ###############################################
 ### 
-###                 Logistic (Error message)
+###                 Logistic 
 ###
 ###############################################
 
@@ -1248,7 +1242,7 @@ nnet_RFE
 # Model Comparisons (Full) ----------------------------------------------------------------
 
 # load('results_ML_Models_Msc_final3.RData') # Load the models which have been run
-# Final '2' adds some of the resamples lists from version 1. No additional models were run.
+# Final '3' adds some of the resamples lists from version 1. No additional models were run.
 
 ########################################################################
 ### 
@@ -1640,7 +1634,10 @@ test.auc.full <- bind_cols(logFull_ROC = as.numeric(ci.auc(logisticFull_ROC)),
 
 # Resampling results (no comparisons)
 dotplot(resample_list, metric = 'ROC', axes = TRUE) # Rplot1 Full
+dotplot(resample_list_sbf_UNI, metric = 'ROC')
+dotplot(resample_list_sbf_DT, metric = 'ROC')
 dotplot(resample_list_RFE, metric = 'ROC')
+dotplot(resample_list_sample, metric = 'ROC')
 dotplot(resample_list_best, metric = 'ROC')
 
 
@@ -1653,12 +1650,14 @@ dotplot(diff.resamples.Full) # Rplot2 Full Diff
 dotplot(diff.resamples.rfe)
 dotplot(diff.resamples.best)
 dotplot(diff.resamples.sbf.UNI)
+dotplot(diff.resamples.sbf.DT)
 
 
 
 
 
 # Resampling results (RFE) model performance plots
+
 LR_RFE_plot <- ggplot(log_RFE) + labs(y = '', title = 'Logistic Reg.',
                                       x = '') + theme(plot.title = element_text(hjust = 0.5))
 RF_RFE_plot <- ggplot(rf_RFE) + labs(y = '', title = 'Random Forest',
